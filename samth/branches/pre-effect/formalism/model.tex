@@ -1,0 +1,347 @@
+\documentclass{article}[12pt]
+\usepackage{mmm}
+\usepackage{sample}
+\usepackage{amsmath}
+\usepackage{amsthm}
+\usepackage{fullpage}
+\usepackage{bcprules}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}{Lemma}
+\newtheorem{define}{Definition}
+
+\newcommand\red{\rightarrow^*} 
+\newcommand{\sembrack}[1]{[\![#1]\!]}
+
+\begin{document}
+
+\title{Typed Scheme}
+\author{Sam Tobin-Hochstadt}
+\date{\today}
+
+\newmeta\e{e}
+\newmeta\E{E}
+\newmeta\d{d}
+\newmeta\b{b}
+\newmeta\uu{u}
+\newmeta\vv{v}
+\newmeta\kk{k}
+\newmeta\n{n}
+\newmeta\ph{\phi}
+%\newcommand\v{\vv{}}
+
+\maketitle
+
+\section{Syntax}
+
+\[
+%\begin{tdisplay}{Syntax of Expressions, Contexts and Types}
+  \begin{altgrammar}
+    \ph{} & ::=& \t{} \alt \noeffect & \mbox{Latent Lexical Effects} \\
+    \p{} &::=& \t{\x{}} \alt \x{} \alt \tt \alt \ff \alt \noeffect & \mbox{Lexical Effects} \\
+   \s{},\t{} &::= & \top \alt \num \alt \bool \alt {\proctype {\s{}} {\t{}} {\ph{}}} \alt (\usym\ \t{} \dots) &\mbox{Types} \\
+   \d{}, \e{}, \dots &::=& \x{}  \alt \comb{\e1}{\e2} \alt \cond{\e1}{\e2}{\e3} \alt \vv{} \alt \wrong &\mbox{Expressions} \\
+   \vv{} &::=& \c{}  \alt \b{} \alt \n{} \alt \abs{\x{}}{\t{}}{\e{}}  & \mbox{Values} \\
+   \c{} &::=& \addone \alt \numberp \alt \boolp & \mbox{Constants} \\
+   \E{} &::=& [] \alt \comb{\E{}}{\e{}} \alt \comb{\vv{}}{\E{}} \alt \cond{\E{}}{\e2}{\e3} & \mbox{Evaluation Contexts}
+   \end{altgrammar}
+%\end{tdisplay}
+\]
+
+Note that $(\usym)$ is below all other types, and that \wrong is a normal form but not a value.
+
+\section{Static Semantics}
+
+
+%\subsection{Typing Rules}
+
+\judgment{Expression Typing}{\ghastyeff{\e{}}{\t{}}{\p{}}}
+
+\[
+\inferrule[T-Var]{}{\ghastyeff{\x{}}{\G{}(\x{})}{\x{}}}
+\qquad\qquad
+\inferrule[T-Num]{}{\ghasty{\n{}}{\num}}
+\qquad\qquad
+\inferrule[T-Const]{}{\G{} \vdash \hastype{\c{}}{\dt{\c{}}}}
+\]
+
+\[
+\inferrule[T-True]{}{\ghastyeff{\tt}{\bool}{\tt}}
+\qquad\qquad
+\inferrule[T-False]{}{\ghastyeff{\ff}{\bool}{\ff}}
+\]
+
+\[
+\inferrule[T-Abs]{\hastyeff{\G{},\hastype{\x{}}{\s{}}}{\e{}}{\t{}}{\p{}}}
+        {\ghasty{\abs{\x{}}{\s{}}{\e{}}}{\proctype {\s{}} {\t{}} {\noeffect}}}
+\qquad\qquad
+\inferrule[T-App]{\ghastyeff{\e1}{\proctype {\t0} {\t1} {\ph{}}}{\p{}}
+\\
+\ghastyeff{\e2}{\t{}}{\p{}'} \\\\ \subtype{\t{}}{\t0}}
+{\ghastyeff{\comb{\e1}{\e2}} {\t1} {\noeffect}}
+\]
+
+\[
+\inferrule[T-If]
+        {\ghastyeff{\e1}{\t1}{\p1}
+        \\\\
+        \hastyeff{\G{} + \p1}{\e2}{\t2}{\p2}
+        \\\\
+        \hastyeff{\G{} - \p1}{\e3}{\t3}{\p3}
+        \\\\
+        \subtype{\t2}{\t{}} \\ \subtype{\t3}{\t{}}
+        }
+        {\ghasty{\cond{\e1}{\e2}{\e3}}{\t{}}}
+\qquad\qquad
+\inferrule[T-AppPred]{\ghastyeff{\e1}{\proctype {\t0} {\t1} {\s{}}}{\p{}}
+\\
+\ghastyeff{\e2}{\t{}}{\x{}} \\\\ \subtype{\t{}}{\t0}}
+{\ghastyeff{\comb{\e1}{\e2}} {\t1} {\s{\x{}}}}
+\]
+
+
+Note that these rules {\it require} that predicates always are
+predicates for the {\it whole} type, that is, prime? is not a
+predicate for \num.
+
+%% should we have \subtype{\bool}{\t1} as a premise of these rules?
+\[
+\inferrule[T-AppPredTrue]{\ghastyeff{\e1}{\proctype{\t0}{\t1}{\s{}}}{\p{}} \\ \ghastyeff{\e2}{\t{}}{\p{}'}
+  \\\\ \subtype{\t{}}{\t0} \\ \subtype{\t{}}{\s{}}}
+        {\ghastyeff{\comb{\e1}{\e2}}{\t1}{\tt}}
+\qquad\qquad
+\inferrule[T-AppPredFalse]{\ghastyeff{\e1}{\proctype{\t0}{\t1}{\s{}}}{\p{}} \\ \ghastyeff{\e2}{\t{}}{\p{}'}
+  \\\\ \subtype{\t{}}{\t0} \\ \t{} \cap \s{} = (\usym)}
+        {\ghastyeff{\comb{\e1}{\e2}}{\t1}{\ff}}
+\]
+
+These next two rules are sort-of analgous to stupid casts.
+Also, should they have less conservative effects?
+
+\[
+\inferrule[T-IfTrue]
+        {\ghastyeff{\e1}{\t1}{\tt}
+        \\
+        \hastyeff{\G{}}{\e2}{\t2}{\p2}
+        \\\\
+        \subtype{\t2}{\t{}}
+        }
+        {\ghasty{\cond{\e1}{\e2}{\e3}}{\t{}}}
+\qquad\qquad
+\inferrule[T-IfFalse]
+        {\ghastyeff{\e1}{\t1}{\ff}
+        \\
+        \hastyeff{\G{}}{\e3}{\t3}{\p3}
+        \\\\
+        \subtype{\t3}{\t{}}
+        }
+        {\ghasty{\cond{\e1}{\e2}{\e3}}{\t{}}}
+\]
+
+
+%\infrule[T-Sub]
+%        {\subtype{\t{}}{\s{}} \andalso \ghastyeff{\e{}}{\t{}}{\p{}}}
+%        {\ghastyeff{\e{}}{\s{}}{\p{}}}
+
+
+\judgment{Subtyping Rules}{\subtype{\s{}}{\t{}}}
+
+\[
+\inferrule[S-Refl]{}{\subtype{\t{}}{\t{}}}
+\qquad\qquad
+\inferrule[S-Trans]{\subtype{\t1}{\t2} \\ \subtype{\t2}{\t3}}
+        {\subtype{\t1}{\t3}}
+\qquad\qquad
+\inferrule[S-Fun]{\subtype{\t1}{\s1} \\ \subtype{\s2}{\t2}}
+        {\subtype{\proctype{\t1}{\t2}{\p{}}}{\proctype{\s1}{\s2}{\p{}}}}
+\]
+
+\[
+\inferrule[S-UnionSuper]{\subtype{\t{}}{\s{i}} \\ 1 \leq i \leq n}
+        {\subtype{\t{}}{(\usym\ \s1 \cdots \s{n})}}
+\qquad\qquad
+\inferrule[S-UnionSub]{\subtype{\t{i}}{\s{}} \mbox{\ for all $1 \leq i \leq n$}}
+        {\subtype{(\usym\ \t1 \cdots \t{n})}{\s{}}}
+\]
+
+\subsection{Auxilliary Operations}
+
+\judgment{Environment Update}{\G{} \pm \p{} = \G{}}
+
+$$
+\G{} + \t{\x{}} = \G{}[\hastype{\x{}}{\G{}(x) \cap \t{}}]
+\qquad
+\G{} + \x{} = \G{}
+\qquad
+\G{} + \noeffect = \G{}
+$$
+$$
+\G{} - \t{\x{}} = \G{}[\hastype{\x{}}{\G{}(x) - \t{}}]
+\qquad
+\G{} - \x{} = \G{}
+\qquad
+\G{} - \noeffect = \G{}
+$$
+
+\judgment{Constant Typing}{\dt{\c{}} = {\t{}}}
+
+$$
+\dt{\addone} = \proctype{\num}{\num}{\noeffect} ; \noeffect
+$$
+$$
+\dt{\numberp} = \proctype{\top}{\bool}{\num} ; \noeffect
+$$
+$$
+\dt{\boolp} = \proctype{\top}{\bool}{\bool} ; \noeffect
+$$
+
+\section{Operational Semantics}
+
+\judgment{Reduction Rules}{\reduce{\d{}}{\e{}}}
+
+For these rules, $\E{}[]$ is implicitly wrapped around both sides.
+
+\[
+\inferrule*[lab={E-Delta}]
+        {\del{\c{}}{\vv{}} = \vv{}'}
+        {\reduce{\comb{\c{}}{\vv{}}}{\vv{}'}}
+\qquad\qquad
+\inferrule[E-Beta]{}
+      {\reduce{\comb{\abs{\x{}}{\t{}}{\e1}}{\e2}}{\subs{\e1}{\x{}}{\e2}}}
+\]
+
+\[
+\inferrule[E-IfFalse]{}
+      {\reduce{\cond{\ff}{\e2}{\e3}}{\e3}}
+\qquad\qquad
+\inferrule[E-IfTrue]{}
+      {\reduce{\cond{\vv{}}{\e2}{\e3}}{\e2}}
+\]
+
+Here the context is explicit.
+
+\[
+\inferrule[E-DeltaWrong]
+        {\del{\c{}}{\vv{}} = \wrong}
+        {\reduce{\E{}[\comb{\c{}}{\vv{}}]}{\wrong}}
+\qquad\qquad
+\inferrule[E-AppWrong]              %
+        {\vv1 \mbox{\ is not an abstraction}}
+        {\reduce{\E{}[\comb{\vv1}{\vv2}]}{\wrong}}
+\]
+
+\judgment{Constant Operations}{\del{\c{}}{\vv{}} = \vv{}}
+
+
+In these definitions, matching is left-to-right.
+
+$$
+\del{\addone}{\n{}} = \n{} + 1
+\qquad
+\del{\addone}{\vv{}} = \wrong
+$$
+$$
+\del{\numberp}{\n{}} = \tt
+\qquad
+\del{\numberp}{\vv{}} = \ff
+$$
+$$
+\del{\boolp}{\b{}} = \tt
+\qquad
+\del{\boolp}{\vv{}} = \ff
+$$
+
+
+
+\section{Soundness}
+
+Here's the type soundness theorem we would like to have:
+
+\begin{theorem}[Soundness]
+  If \hastyeff{\ }{\e{}}{\t{}}{\p{}}  then one of the following holds:
+  \begin{enumerate}
+    \item \e{} reduces forever
+    %\item \reduces{\e{}}{\wrong}
+    \item \reduces{\e{}}{\vv{}} where \hastyeff{\ }{\vv{}}{\s{}}{\p{}'} and  \subtype{\s{}}{\t{}}.
+  \end{enumerate}
+\end{theorem}
+
+
+Let's consider progress:
+\begin{theorem}[Progress]
+  If \ghastyeff{\e{}}{\t{}}{\p{}} then either \reduce{\e{}}{\wrong} or \reduce{\e{}}{\e{}'} for some $\e{}'$.
+\end{theorem}
+
+This seems fine. 
+
+
+Here's the problem:  the following theorem is not true without the \tt and \ff effects.
+
+\begin{theorem}[Subject Reduction]
+  If \ghastyeff{\e{}}{\t{}}{\p{}}, and \reduce{\e{}}{\e{}'}, then
+  \ghastyeff{\e{}'}{\t{}'}{\p{}'} where \subtype{\t{}'}{\t{}}.
+\end{theorem}
+
+
+{\bf Counter-Example:} 
+
+
+Let \e0 be
+\comb
+    {\abs{\x{}}{(\usym \ \num \ \bool)}
+      {\cond
+        {\comb{\numberp}{\x{}}}
+        {\comb{\addone}{\x{}}}
+        {0}
+      }}
+    {\tt}.
+
+
+Then \reduce{\e0}{      {\cond
+        {\comb{\numberp}{\tt}}
+        {\comb{\addone}{\tt}}
+        {0}
+      }}. 
+
+
+But \comb{\addone}{\tt} is not well-typed, so the \ifsym expression is
+not well-typed unless we avoid looking at the then branch somehow.
+
+
+
+\newpage
+
+\section{Possible New Rules}
+
+These rules are possibilites that use the lexical effects to type more programs.
+
+This rule applies when we $\eta$-expand a predicate, as in \abs{\x{}}{\t{}}{\comb{\numberp}{\x{}}}
+
+\[
+\inferrule[T-AbsPred]{\hastyeff{\G{},\hastype{\x{}}{\t0}}{\e{}}{\t{}}{\s{\x{}}}}
+        {\ghasty{\abs{\x{}}{\t0}{\e{}}}{\proctype {\t0} {\t{}} {\s{}}}}
+\]
+
+This rule allows us to type the expansion of $(and\ \cdots)$
+
+\[
+%% named so because it handles the expansion of (and ...)
+\inferrule[T-IfAnd]
+        {\ghastyeff{\e1}{\t1}{\p1}
+        \\\\
+        \hastyeff{\G{} + \p1}{\e2}{\t2}{\p2}
+        \\\\
+        \hastyeff{\G{} - \p1}{\e3}{\t3}{\ff}
+        \\\\
+        \subtype{\t2}{\t{}} \\ \subtype{\t3}{\t{}}
+        }
+        {\ghastyeff{\cond{\e1}{\e2}{\e3}}{\t{}}{\p1}}
+\]
+
+provided that we change the returned effect in rules {\sc T-IfTrue}
+and {\sc T-IfFalse} is made more specific - in particular \p2 and \p3
+respectively.
+
+
+
+\end{document}
+

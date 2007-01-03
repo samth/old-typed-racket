@@ -1,0 +1,90 @@
+%% macros for sample.tex
+
+\usepackage{mathpartir}
+
+%% metavariables
+
+% types
+\newmeta\s{\sigma}              % these are automatically wrapped in \ma
+\newmeta\t{\tau}
+\newmeta\p{\psi}
+
+% expressions
+\newmeta\M{M}
+\newmeta\N{N}
+\newmeta\P{P}
+
+% we write a macro for every bit of abstract syntax.  That way they
+% will all look the same!
+
+% types
+\newbfop\num{number}
+\newbfop\bool{boolean}
+\newbfop\tt{true}
+\newbfop\ff{false}
+\newbfop\wrong{wrong}
+\newbfop\ifsym{if}
+\newcommand\noeffect{\ma{\bullet}}
+%\newbfop\usym{\ma{\cup}}
+\newcommand\usym{\cup}
+\newcommand\proctype[3]{(#1 \stackrel{#3}{\to} #2)}
+%\newcommand\uty
+% \proctype is a little overkill.
+%% Reynolds' package can also abstract things like (\s1 \to \s2 \to \s3).
+
+% terms
+\newmeta\x{x}                   % not sure if \x is reserved...
+\newmeta\c{c}
+\newcommand\numberp{\ma{\mathrm{number?}}}
+\newcommand\addone{\ma{\mathrm{add1}}}
+\newcommand\boolp{\ma{\mathrm{boolean?}}}
+\newcommand\plus{\mathbin{+}}
+\newcommand\abs[3]{\ma{\l #1 : #2 . #3}}
+\newcommand\comb[2]{\ma{(#1\ #2)}}
+\newcommand\cond[3]{\ma{(\ifsym\ #1\ #2\ #3)}}
+
+\def\subtypesym{<:}
+
+% typing judgements
+\newcommand\hastype[2]{\ma{#1 \mathbin{:} #2}}
+\newcommand\hasty[3]{\hastype{#1 \vdash #2}{#3}}
+\newcommand\hastyeff[4]{\hastype{#1 \vdash #2}{#3 ; #4}}
+\newcommand\ghastyeff[3]{\ma{\hastyeff{\Gamma}{#1}{#2}{#3}}}
+\newcommand\ghasty[2]{\ma{\ghastyeff{#1}{#2}{\noeffect}}}
+\newcommand\subtype[2]{\ma{\vdash #1 \subtypesym #2}}
+
+% reductions
+
+\newcommand\subs[3]{\ma{#1[#2/#3]}}
+\newcommand\reduce[2]{\ma{#1 \rightarrow #2}}
+\newcommand\reduces[2]{\ma{#1 \rightarrow^* #2}}
+
+
+\newcommand\dt[1]{\delta_{\tau}(#1)}
+\newcommand\del[2]{\delta(#1,#2)}
+
+% from Dave
+
+\newcommand{\kw}[1]{\mbox{\textbf{#1}}}
+\newcommand{\skw}[1]{\mbox{\textsf{\textbf{#1}}}}
+\newcommand{\judge}[2]{#1 \vdash #2}
+\newcommand{\judget}[3]{\judge{#1}{#2 : #3}}
+\newcommand{\judges}[3]{\judge{#1}{#2 : #3}}
+\newcommand{\judgeP}[1]{\judge{}{#1\ \ok}}
+\newcommand{\macroval}[3]{\langle \kw{macro:}\ #1, #2, #3 \rangle}
+\newcommand{\mclause}[3]{\langle #1, #2, #3 \rangle}
+\newcommand{\mtype}[2]{#1 \rightarrow #2}
+
+\newcommand{\dc}{\underline{\hspace{.5em}}}
+\newcommand\TAKESOMESPACEONTOP{\rule{0pt}{2.4ex}}
+\newcommand\TAKESOMESPACEONBOTTOM{\rule[-1.2ex]{0pt}{0pt}}
+
+\newcommand{\judgment}[2]{%
+\begin{center}%
+\[%
+\begin{tabular*}{0.95\textwidth}{@{\extracolsep{\fill}}lr}%
+\mbox{\textbf{#1}} & \fbox{$ #2 $}%
+\end{tabular*}%
+\]%
+\end{center}}
+\newcommand{\mathsc}[1]{\mbox{\textsc{#1}}}

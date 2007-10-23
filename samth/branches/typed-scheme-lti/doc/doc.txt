@@ -1,0 +1,4 @@
+This collection implements _Typed Scheme_.
+
+Documentation is available at http://www.ccs.neu.edu/~samth/typed-scheme .
+

@@ -1,0 +1,10 @@
+#reader (planet "typed-reader.ss" ("plt" "typed-scheme.plt"))
+(module bang-tests (planet "typed-scheme.ss" ("plt" "typed-scheme.plt"))
+  (define #{x : number} 1)
+  (provide x)
+  )
+
+(module trequire (planet "typed-scheme.ss" ("plt" "typed-scheme.plt"))
+  (require bang-tests)
+  (define: y : number x)
+  (display y))

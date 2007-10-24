@@ -4,37 +4,37 @@
   (require (lib "etc.ss"))
   (require "rep-utils.ss")
   
-  (de True-Effect)
+  (de True-Effect () #:frees #f)
   
-  (de False-Effect)
+  (de False-Effect () #:frees #f)
   
   ;; v is an identifier
-  (de Var-True-Effect (v) #:no-intern)
+  (de Var-True-Effect (v) #:no-intern #:frees #f)
   (defintern (*Var-True-Effect v) make-Var-True-Effect (hash-id v))
 
   ;; v is an identifier
-  (de Var-False-Effect (v) #:no-intern)
+  (de Var-False-Effect (v) #:no-intern #:frees #f)
   (defintern (*Var-False-Effect v) make-Var-False-Effect (hash-id v))
   
   ;; t is a Type
   ;; v is an identifier
-  (de Restrict-Effect (t v) #:no-intern)
+  (de Restrict-Effect (t v) #:no-intern #:frees #f)
   (defintern (*Restrict-Effect t v) make-Restrict-Effect (list t (hash-id v)))
   
   ;; t is a Type
   ;; v is an identifier
-  (de Remove-Effect (t v) #:no-intern)
+  (de Remove-Effect (t v) #:no-intern #:frees #f)
   (defintern (*Remove-Effect t v) make-Remove-Effect (list t (hash-id v)))
 
   ;; t is a Type
-  (de Latent-Restrict-Effect t)
+  (de Latent-Restrict-Effect (t) #:frees #f)
   
   ;; t is a Type
-  (de Latent-Remove-Effect t)
+  (de Latent-Remove-Effect (t) #:frees #f)
 
-  (de Latent-Var-True-Effect)
+  (de Latent-Var-True-Effect () #:frees #f)
 
-  (de Latent-Var-False-Effect)
+  (de Latent-Var-False-Effect () #:frees #f)
 
   ;; could also have latent true/false effects, but seems pointless
   

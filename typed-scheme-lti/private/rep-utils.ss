@@ -30,6 +30,25 @@
            #,(if printing? #'([prop:custom-write printer]) #'())
            #f)]))
   
+  (define-values (Covariant Contravariant Invariant Constant)
+    (let ()
+      (define-struct Variance () #f)
+      (define-struct (Covariant Variance) () #f)
+      (define-struct (Contravariant Variance) () #f)
+      (define-struct (Invariant Variance) () #f)
+      (define-struct (Constant Variance) () #f)
+      (values (make-Covariant) (make-Contravariant) (make-Invariant) (make-Constant))))
+  
+  
+  ;; hashtables for keeping track of free variables and indexes
+  (define index-table (make-hash-table 'weak))
+  ;; maps Type to List[Cons[Number,Variance]]
+  (define var-table (make-hash-table 'weak))
+  ;; maps Type to List[Cons[Symbol,Variance]]
+  
+  (define (free-idxs* t) (hash-table-get index-table t (lambda _ (error "type not in index-table" t))))
+  (define (free-vars* t) (hash-table-get var-table t (lambda _ (error "type not in var-table" t))))
+  
   ;; all types are Type?
   (define-struct/printer Type (seq) (lambda (a b c) ((unbox print-type*) a b c)))
   
@@ -76,22 +95,31 @@
                   (module-identifier-mapping-put! identifier-table id c)
                   c))))
   
+  (require (lib "define-struct.ss" "big"))
+  
   (define-syntaxes (dt de)
     (let ()
       (define (parse-opts opts)
-        (values (not (member #:no-provide opts))
-                (not (member #:no-intern opts))))
-      (define (mk par)
-        (lambda (stx)
+        (let loop ([provide? #t] [intern? #t] [frees #t] [opts opts])
+          (cond 
+            [(null? opts) (values provide? intern? frees)]
+            [(eq? #:no-provide (syntax-e (car opts)))
+             (loop #f intern? frees (cdr opts))]
+            [(eq? #:no-intern (syntax-e (car opts)))
+             (loop provide? #f frees (cdr opts))]
+            [(eq? #:frees (syntax-e (car opts)))
+             (loop provide? intern? (cadr opts) (cddr opts))]
+            [else (raise-syntax-error #f "bad options")])))
+      (define (mk par)        
+        (lambda (stx)          
           (syntax-case stx ()
-            [(_ nm . flds)
-             (andmap identifier? (syntax->list #'flds))
-             ((mk par) #'(_ nm flds))]
             [(_ nm flds . opts)
-             (let-values ([(provide? intern?) (parse-opts (syntax-object->datum #'opts))])
+             (let-values ([(provide? intern? frees) (parse-opts (syntax->list #'opts))])
                (with-syntax* ([ex (id #'nm #'nm ":")]
                               [parent par]
                               [(_ maker pred acc ...) (build-struct-names #'nm (syntax->list #'flds) #f #t #'nm)]
+                              [(flds* ...) #'flds]    
+                              [(tmp-maker) (generate-temporaries #'(maker))]
                               [*maker (id #'nm "*" #'nm)]
                               [provides (if provide? 
                                             #`(begin 
@@ -101,9 +129,20 @@
                               [intern (cond 
                                         [(not intern?) #'(begin)]
                                         [(null? (syntax-e #'flds))
-                                         #'(defintern (*maker . flds) maker #f)]
-                                        [(stx-null? (stx-cdr #'flds)) #'(defintern (*maker . flds) maker . flds)]
-                                        [else #'(defintern (*maker . flds) maker (list . flds))])])
+                                         #'(defintern (tmp-maker . flds) maker #f)]
+                                        [(stx-null? (stx-cdr #'flds)) #'(defintern (tmp-maker . flds) maker . flds)]
+                                        [else #'(defintern (tmp-maker . flds) maker (list . flds))])]
+                              [frees (cond
+                                       [(and (syntax? frees) (not (syntax-e frees)))
+                                        #'(begin)]
+                                       [(syntax? frees) frees]
+                                       [else #'(define (*make . flds)
+                                                 (define fvs (append (free-vars* flds*) ...))
+                                                 (define fis (append (free-idxs* flds*) ...))
+                                                 (define v (tmp-maker . flds))
+                                                 (hash-table-put! var-table v fvs)
+                                                 (hash-table-put! index-table v fis)
+                                                 v)])])
                  #'(begin
                      (define-struct (nm parent) flds #f)
                      (define-match-expander ex
@@ -112,7 +151,8 @@
                           (syntax-case s ()
                             [(__ fs ...) (syntax/loc s (struct nm (_ fs ...)))]))))
                      intern
-                     provides)))])))
+                     provides
+                     frees)))])))
       (values (mk #'Type) (mk #'Effect))))
   
   )

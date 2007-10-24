@@ -13,19 +13,19 @@
   ;; Type is defined in rep-utils.ss
   
   ;; t must be a Type
-  (dt Scope t)
+  (dt Scope (t))
   
   ;; i is an nat
-  (dt B i)
+  (dt B (i))
   
   ;; n is a Name
-  (dt F n)
+  (dt F (n))
   
   ;; left and right are Types
-  (dt Pair left right)
+  (dt Pair (left right))
   
   ;; elem is a Type
-  (dt Vector elem)
+  (dt Vector (elem))
   
   ;; name is a Symbol (not a Name)
   (dt Base (name))
@@ -46,7 +46,7 @@
   ;; parent : Struct
   ;; flds : Listof[Type]
   ;; proc : Function Type
-  (dt Struct name parent flds proc)
+  (dt Struct (name parent flds proc))
   
   ;; dom : Listof[Type]
   ;; rng : Type
@@ -54,29 +54,29 @@
   ;; thn-eff : Effect
   ;; els-eff : Effect
   ;; arr is NOT a Type
-  (dt arr dom rng rest thn-eff els-eff)
+  (dt arr (dom rng rest thn-eff els-eff))
   
   ;; arities : Listof[arr]
-  (dt Function arities)
+  (dt Function (arities))
   
   ;; v : Scheme Value
-  (dt Value v)
+  (dt Value (v))
   
   ;; elems : Set[Type]
-  (dt Union elems)
+  (dt Union (elems))
   
-  (dt Univ)
+  (dt Univ ())
   
   ;; types : Listof[Type]
-  (dt Values types)
+  (dt Values (types))
   
   ;; in : Type
   ;; out : Type
-  (dt Param in out)
+  (dt Param (in out))
   
   ;; key : Type
   ;; value : Type
-  (dt Hashtable key value)
+  (dt Hashtable (key value))
   
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   

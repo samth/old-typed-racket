@@ -16,10 +16,10 @@
   (dt Scope (t))
   
   ;; i is an nat
-  (dt B (i))
+  (dt B (i) [#:frees null (list (list i Covariant))])
   
   ;; n is a Name
-  (dt F (n))
+  (dt F (n) [#:frees (list (list n Covariant)) null])
   
   ;; left and right are Types
   (dt Pair (left right))
@@ -28,25 +28,27 @@
   (dt Vector (elem))
   
   ;; name is a Symbol (not a Name)
-  (dt Base (name))
+  (dt Base (name) [#:frees #f])
   
   ;; body is a Scope
-  (dt Mu (body) #:no-provide)    
+  (dt Mu (body) #:no-provide [#:frees (error "nyi") (error "nyi")])    
   
   ;; n is how many variables are bound here
   ;; body is a Scope
-  (dt Poly (n body) #:no-provide)
+  (dt Poly (n body) #:no-provide [#:frees (error "nyi") (error "nyi")])
   
   ;; pred : identifier
   ;; cert : syntax certifier
-  (dt Opaque (pred cert) #:no-intern)
-  (defintern (*Opaque pred cert) make-Opaque (hash-id pred))
+  (dt Opaque (pred cert) [#:intern (hash-id pred)] [#:frees #f])
+  #;(defintern (*Opaque pred cert) make-Opaque (hash-id pred))
   
   ;; name : symbol
   ;; parent : Struct
   ;; flds : Listof[Type]
   ;; proc : Function Type
-  (dt Struct (name parent flds proc))
+  (dt Struct (name parent flds proc) 
+      [#:frees (combine-frees (map free-vars* (list* proc parent flds)))
+               (combine-frees (map free-idxs* (list* proc parent flds)))])
   
   ;; dom : Listof[Type]
   ;; rng : Type
@@ -54,21 +56,28 @@
   ;; thn-eff : Effect
   ;; els-eff : Effect
   ;; arr is NOT a Type
-  (dt arr (dom rng rest thn-eff els-eff))
+  (dt arr (dom rng rest thn-eff els-eff)
+      [#:frees (combine-frees (append (map flip-variance (map free-vars* dom)) 
+                                      (map free-vars* (list rng rest thn-eff els-eff))))
+               (combine-frees (append (map flip-variance (map free-idxs* dom)) 
+                                      (map free-idxs* (list rng rest thn-eff els-eff))))])
   
   ;; arities : Listof[arr]
-  (dt Function (arities))
+  (dt Function (arities) [#:frees (combine-frees (map free-vars* arities))
+                                  (combine-frees (map free-idxs* arities))])
   
   ;; v : Scheme Value
-  (dt Value (v))
+  (dt Value (v) [#:frees #f])
   
-  ;; elems : Set[Type]
-  (dt Union (elems))
+  ;; elems : Listof[Type]
+  (dt Union (elems) [#:frees (combine-frees (map free-vars* elems))
+                             (combine-frees (map free-idxs* elems))])
   
   (dt Univ ())
   
   ;; types : Listof[Type]
-  (dt Values (types))
+  (dt Values (types) [#:frees (combine-frees (map free-vars* types))
+                              (combine-frees (map free-idxs* types))])
   
   ;; in : Type
   ;; out : Type

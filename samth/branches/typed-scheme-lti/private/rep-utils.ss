@@ -40,6 +40,8 @@
       (values (make-Covariant) (make-Contravariant) (make-Invariant) (make-Constant))))
   
   
+  (provide Covariant Contravariant Invariant Constant)
+  
   ;; hashtables for keeping track of free variables and indexes
   (define index-table (make-hash-table 'weak))
   ;; maps Type to List[Cons[Number,Variance]]
@@ -97,49 +99,75 @@
   
   (require (lib "define-struct.ss" "big"))
   
+  (provide free-vars* free-idxs*)
+  
+  ;; (listof (listof free)) -> (listof free)
+  (define (combine-frees freess) (error "nyi"))
+  
+  ;; free -> free
+  (define (flip-variance v)
+    (error "nyi"))
+  
+  (provide combine-frees flip-variance)
+  
   (define-syntaxes (dt de)
     (let ()
-      (define (parse-opts opts)
-        (let loop ([provide? #t] [intern? #t] [frees #t] [opts opts])
+      (define (parse-opts opts stx)
+        (let loop ([provide? #t] [intern? #f] [frees (list #'null #'null)] [opts opts])
           (cond 
             [(null? opts) (values provide? intern? frees)]
-            [(eq? #:no-provide (syntax-e (car opts)))
+            [(eq? #:no-provide (syntax-e (stx-car opts)))
              (loop #f intern? frees (cdr opts))]
-            [(eq? #:no-intern (syntax-e (car opts)))
-             (loop provide? #f frees (cdr opts))]
-            [(eq? #:frees (syntax-e (car opts)))
-             (loop provide? intern? (cadr opts) (cddr opts))]
-            [else (raise-syntax-error #f "bad options")])))
+            [(not (and (stx-pair? opts) (stx-pair? (stx-car opts))))
+             (raise-syntax-error #f "bad options" stx)]
+            [(eq? #:intern (syntax-e (stx-car (car opts))))
+             (loop provide? (stx-car (stx-cdr (car opts))) frees (cdr opts))]
+            [(eq? #:frees (syntax-e (stx-car (car opts))))
+             (loop provide? intern? (stx-cdr (car opts)) (cdr opts))]
+            [else (raise-syntax-error #f "bad options" stx)])))
       (define (mk par)        
         (lambda (stx)          
           (syntax-case stx ()
             [(_ nm flds . opts)
-             (let-values ([(provide? intern? frees) (parse-opts (syntax->list #'opts))])
+             (let-values ([(provide? intern? frees) (parse-opts (syntax->list #'opts) #'opts)])
                (with-syntax* ([ex (id #'nm #'nm ":")]
                               [parent par]
                               [(_ maker pred acc ...) (build-struct-names #'nm (syntax->list #'flds) #f #t #'nm)]
-                              [(flds* ...) #'flds]    
-                              [(tmp-maker) (generate-temporaries #'(maker))]
+                              [(flds* ...) #'flds]
                               [*maker (id #'nm "*" #'nm)]
+                              [**maker (id #'nm "**" #'nm)]
                               [provides (if provide? 
                                             #`(begin 
                                                 (provide ex pred acc ...)
                                                 (provide (rename *maker maker)))
                                             #'(begin))]
                               [intern (cond 
-                                        [(not intern?) #'(begin)]
+                                        [(syntax? intern?)
+                                         #`(defintern (**maker . flds) maker #,intern?)]                                        
                                         [(null? (syntax-e #'flds))
-                                         #'(defintern (tmp-maker . flds) maker #f)]
-                                        [(stx-null? (stx-cdr #'flds)) #'(defintern (tmp-maker . flds) maker . flds)]
-                                        [else #'(defintern (tmp-maker . flds) maker (list . flds))])]
+                                         #'(defintern (**maker . flds) maker #f)]
+                                        [(stx-null? (stx-cdr #'flds)) #'(defintern (**maker . flds) maker . flds)]
+                                        [else #'(defintern (**maker . flds) maker (list . flds))])]
                               [frees (cond
-                                       [(and (syntax? frees) (not (syntax-e frees)))
-                                        #'(begin)]
-                                       [(syntax? frees) frees]
-                                       [else #'(define (*make . flds)
+                                       ;; we know that this has no free vars
+                                       [(and (syntax? frees) (not (syntax-e (car frees))))
+                                        #'(define (*maker . flds)
+                                            (define v (**maker . flds))
+                                            (hash-table-put! var-table v null)
+                                            (hash-table-put! index-table v null)
+                                            v)]
+                                       ;; we provided an expression each for calculating the free vars and free idxs
+                                       ;; this should really be 2 expressions, one for each kind
+                                       [(and (pair? frees) (pair? (cdr frees)))
+                                        #`(define (*maker . flds)
+                                            (define v (**maker . flds))
+                                            (hash-table-put! var-table v #,(car frees))
+                                            (hash-table-put! index-table v #,(cadr frees))
+                                            v)]                                       
+                                       [else #'(define (*maker . flds)
                                                  (define fvs (append (free-vars* flds*) ...))
                                                  (define fis (append (free-idxs* flds*) ...))
-                                                 (define v (tmp-maker . flds))
+                                                 (define v (*maker . flds))
                                                  (hash-table-put! var-table v fvs)
                                                  (hash-table-put! index-table v fis)
                                                  v)])])

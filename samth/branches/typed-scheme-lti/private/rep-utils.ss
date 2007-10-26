@@ -97,18 +97,43 @@
                   (module-identifier-mapping-put! identifier-table id c)
                   c))))
   
-  (require (lib "define-struct.ss" "big"))
+  (require (lib "define-struct.ss" "big")
+           (lib "list.ss" "srfi" "1")
+           (lib "etc.ss"))
   
   (provide free-vars* free-idxs*)
   
   ;; (listof (listof free)) -> (listof free)
-  (define (combine-frees freess) (error "nyi"))
+  (define (combine-frees . args)
+    (unless (= (length args) 1)
+      (error "wrong args" args))
+    (let ([freess (car args)])
+      (define frees* (apply append freess))
+      (delete-duplicates frees* (lambda (x y) (eq? (car x) (car y))))))
   
   ;; free -> free
-  (define (flip-variance v)
-    (error "nyi"))
+  (define (flip-variances vs)
+    (map (lambda (v)
+           (evcase 
+            (cadr v)
+            [Covariant Contravariant]
+            [Contravariant Covariant]
+            [else (cadr v)]))
+         vs))
   
-  (provide combine-frees flip-variance)
+  (define (without-below n frees)
+    (let loop ([frees frees] [acc null])
+      (cond [(null? frees) acc]
+            [(< (car frees) n) (loop (cdr frees) acc)]
+            [else (loop (cdr frees) (cons (car frees) acc))])))
+  
+  (provide combine-frees flip-variances without-below)
+  
+  (define-syntax (unless-in-table stx) 
+    (syntax-case stx ()
+      [(_ table val . body)
+       (quasisyntax/loc stx
+         (hash-table-get table val #,(syntax/loc #'body (lambda () . body))))]))
   
   (define-syntaxes (dt de)
     (let ()
@@ -118,6 +143,8 @@
             [(null? opts) (values provide? intern? frees)]
             [(eq? #:no-provide (syntax-e (stx-car opts)))
              (loop #f intern? frees (cdr opts))]
+            [(eq? #:no-frees (syntax-e (stx-car opts)))
+             (loop #f intern? #f (cdr opts))]
             [(not (and (stx-pair? opts) (stx-pair? (stx-car opts))))
              (raise-syntax-error #f "bad options" stx)]
             [(eq? #:intern (syntax-e (stx-car (car opts))))
@@ -149,28 +176,41 @@
                                         [(stx-null? (stx-cdr #'flds)) #'(defintern (**maker . flds) maker . flds)]
                                         [else #'(defintern (**maker . flds) maker (list . flds))])]
                               [frees (cond
+                                       [(not frees) #'(begin)]
                                        ;; we know that this has no free vars
-                                       [(and (syntax? frees) (not (syntax-e (car frees))))
-                                        #'(define (*maker . flds)
-                                            (define v (**maker . flds))
-                                            (hash-table-put! var-table v null)
-                                            (hash-table-put! index-table v null)
-                                            v)]
+                                       [(and (syntax? (car frees)) (not (syntax-e (car frees))))
+                                        (syntax/loc stx
+                                          (define (*maker . flds)
+                                            (define v (**maker . flds)) 
+                                            (unless-in-table 
+                                             var-table v
+                                             (hash-table-put! var-table v null)
+                                             (hash-table-put! index-table v null))
+                                            v))]
                                        ;; we provided an expression each for calculating the free vars and free idxs
                                        ;; this should really be 2 expressions, one for each kind
                                        [(and (pair? frees) (pair? (cdr frees)))
-                                        #`(define (*maker . flds)
+                                        (quasisyntax/loc
+                                            stx
+                                          (define (*maker . flds)
                                             (define v (**maker . flds))
-                                            (hash-table-put! var-table v #,(car frees))
-                                            (hash-table-put! index-table v #,(cadr frees))
-                                            v)]                                       
-                                       [else #'(define (*maker . flds)
-                                                 (define fvs (append (free-vars* flds*) ...))
-                                                 (define fis (append (free-idxs* flds*) ...))
-                                                 (define v (*maker . flds))
-                                                 (hash-table-put! var-table v fvs)
-                                                 (hash-table-put! index-table v fis)
-                                                 v)])])
+                                            #,
+                                            (quasisyntax/loc (car frees)
+                                              (unless-in-table 
+                                               var-table v
+                                               (hash-table-put! var-table v #,(car frees))
+                                               (hash-table-put! index-table v #,(cadr frees))))
+                                            v))]                                       
+                                       [else (syntax/loc stx
+                                               (define (*maker . flds)
+                                                 (define v (**maker . flds))
+                                                 (unless-in-table 
+                                                  var-table v
+                                                  (define fvs (append (free-vars* flds*) ...))
+                                                  (define fis (append (free-idxs* flds*) ...))
+                                                  (hash-table-put! var-table v fvs)
+                                                  (hash-table-put! index-table v fis))
+                                                 v))])])
                  #'(begin
                      (define-struct (nm parent) flds #f)
                      (define-match-expander ex

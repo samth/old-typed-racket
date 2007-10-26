@@ -28,14 +28,14 @@
   (dt Vector (elem))
   
   ;; name is a Symbol (not a Name)
-  (dt Base (name) [#:frees #f])
+  (dt Base (name) [#:frees null null])
   
   ;; body is a Scope
-  (dt Mu (body) #:no-provide [#:frees (error "nyi") (error "nyi")])    
+  (dt Mu (body) #:no-provide [#:frees (free-vars* body) (without-below 1 (free-idxs* body))])    
   
   ;; n is how many variables are bound here
   ;; body is a Scope
-  (dt Poly (n body) #:no-provide [#:frees (error "nyi") (error "nyi")])
+  (dt Poly (n body) #:no-provide [#:frees (free-vars* body) (without-below n (free-idxs* body))])
   
   ;; pred : identifier
   ;; cert : syntax certifier
@@ -57,10 +57,16 @@
   ;; els-eff : Effect
   ;; arr is NOT a Type
   (dt arr (dom rng rest thn-eff els-eff)
-      [#:frees (combine-frees (append (map flip-variance (map free-vars* dom)) 
-                                      (map free-vars* (list rng rest thn-eff els-eff))))
-               (combine-frees (append (map flip-variance (map free-idxs* dom)) 
-                                      (map free-idxs* (list rng rest thn-eff els-eff))))])
+      [#:frees (combine-frees (append (map flip-variances (map free-vars* dom))) 
+                                      (map free-vars* (append (list rng) 
+                                                              (if rest (list rest) null)
+                                                              thn-eff
+                                                              els-eff)))
+               (combine-frees (append (map flip-variances (map free-idxs* dom))
+                                      (map free-idxs* (append (list rng) 
+                                                              (if rest (list rest) null)
+                                                              thn-eff
+                                                              els-eff))))])
   
   ;; arities : Listof[arr]
   (dt Function (arities) [#:frees (combine-frees (map free-vars* arities))

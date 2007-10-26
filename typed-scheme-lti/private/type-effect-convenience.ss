@@ -121,8 +121,6 @@
   (define (list->values-ty l)
     (if (= 1 (length l)) (car l) (-values l)))
   
-  ;; WARNING: this only works when these are NOT subtypes of each other
-  ;; otherwise, VERY BAD THINGS WILL HAPPEN
   (define *Un Un)
 
   

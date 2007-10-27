@@ -23,7 +23,7 @@
       [(_ ty-stx ty-val ((nm ty) ...) tvar-env)
        #`(test-case #,(format "~a" (syntax-object->datum #'ty-stx))
                     (parameterize ([current-tvars tvar-env])
-                      (initialize-type-name-env initial-type-names)
+                      #;(initialize-type-name-env initial-type-names)
                       (register-type-name #'nm ty) ...
                       (check type-equal? (parse-type (quote-syntax ty-stx)) ty-val)))]))
   

@@ -5,7 +5,7 @@
                    type-rep type-effect-convenience type-env base-env
                    prims type-environments tc-utils union
                    type-name-env init-envs mutated-vars
-                   effect-rep type-equal type-annotation)  
+                   effect-rep #;type-equal type-annotation)  
   
   (require-for-syntax/private tc-utils typechecker)
   
@@ -27,10 +27,11 @@
   (define-syntax (tc-expr/expand stx)
     (syntax-case stx ()
       [(_ e)
-       (with-syntax ([e* (local-expand #'e 'expression ())])
+       (with-syntax ([e* (local-expand #'e 'expression ())]
+                     [ienv initial-env])
          #'(begin
-             (initialize-type-name-env initial-type-names)
-             (initialize-type-env initial-env)
+             #;(initialize-type-name-env initial-type-names)
+             #;(initialize-type-env ienv)
              (let ([ex #'e*])
                (find-mutated-vars ex)
                (tc-expr ex))))]))
@@ -76,8 +77,8 @@
       "tc-expr tests"
       #:before
       (lambda () 
-        (for-each (lambda (nm/ty) (register-type (car nm/ty) (cadr nm/ty))) initial-env)
-        (initialize-type-name-env initial-type-names))
+        (for-each (lambda (nm/ty) (register-type (car nm/ty) (cadr nm/ty))) null #;initial-env)
+        #;(initialize-type-name-env initial-type-names))
       
       [tc-e
        (let: ([x : (U Number (cons Number Number)) (cons 3 4)])

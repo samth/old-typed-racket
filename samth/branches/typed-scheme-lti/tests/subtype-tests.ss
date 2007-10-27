@@ -1,6 +1,8 @@
 (module subtype-tests mzscheme
   
   (require "test-utils.ss")
+  (require-for-syntax (only "../private/extra-procs.ss" assert))
+  (require-for-template (only "../private/extra-procs.ss" assert))
   
   (require/private subtype type-rep type-effect-convenience 
                    planet-requires init-envs type-environments union base-env)
@@ -20,8 +22,7 @@
       [(_ cl ...)
        (with-syntax ([(new-cl ...) (map single-test (syntax->list #'(cl ...)))])
          (syntax/loc stx
-           (begin (initialize-type-name-env initial-env)                  
-                  (test-suite "Tests for subtyping"
+           (begin (test-suite "Tests for subtyping"
                               new-cl ...))))]))
 
   (define (subtype-tests)

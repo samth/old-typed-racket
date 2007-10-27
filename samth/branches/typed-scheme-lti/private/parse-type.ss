@@ -141,7 +141,7 @@
         [(id arg args ...)
          (identifier? #'id)
          (let ([ty (parse-type #'id)])
-           (printf "ty is ~a" ty)
+           #;(printf "ty is ~a" ty)
            (unless (Poly? ty)
              (tc-error "not a polymorphic type: ~a" (syntax-e #'id)))
            (unless (= (length (syntax->list #'(arg args ...))) (Poly-n ty))

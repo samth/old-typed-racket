@@ -114,11 +114,13 @@
   ;; free -> free
   (define (flip-variances vs)
     (map (lambda (v)
-           (evcase 
-            (cadr v)
-            [Covariant Contravariant]
-            [Contravariant Covariant]
-            [else (cadr v)]))
+           (list
+            (evcase 
+             (cadr v)
+             [Covariant Contravariant]
+             [Contravariant Covariant]
+             [else (cadr v)])
+            (car v)))
          vs))
   
   (define (without-below n frees)
@@ -182,6 +184,7 @@
                                         (syntax/loc stx
                                           (define (*maker . flds)
                                             (define v (**maker . flds)) 
+                                            #;(printf  "~a entered in #f case~n" '*maker)
                                             (unless-in-table 
                                              var-table v
                                              (hash-table-put! var-table v null)
@@ -194,20 +197,23 @@
                                             stx
                                           (define (*maker . flds)
                                             (define v (**maker . flds))
+                                            #;(printf  "~a entered in expr case ~n~a~n~a ~n" '*maker '#,(car frees) '#,(cadr frees))
                                             #,
                                             (quasisyntax/loc (car frees)
                                               (unless-in-table 
                                                var-table v
                                                (hash-table-put! var-table v #,(car frees))
                                                (hash-table-put! index-table v #,(cadr frees))))
+                                            #;(printf  "~a exited in expr case~n" '*maker)
                                             v))]                                       
                                        [else (syntax/loc stx
                                                (define (*maker . flds)
                                                  (define v (**maker . flds))
+                                                 #;(printf  "~a entered in default case~n" '*maker)
                                                  (unless-in-table 
                                                   var-table v
-                                                  (define fvs (append (free-vars* flds*) ...))
-                                                  (define fis (append (free-idxs* flds*) ...))
+                                                  (define fvs (combine-frees (list (free-vars* flds*) ...)))
+                                                  (define fis (combine-frees (list (free-idxs* flds*) ...)))
                                                   (hash-table-put! var-table v fvs)
                                                   (hash-table-put! index-table v fis))
                                                  v))])])

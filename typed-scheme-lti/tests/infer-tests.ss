@@ -1,6 +1,6 @@
 (module infer-tests mzscheme
   (require "test-utils.ss" (lib "list.ss"))
-  (require/private planet-requires type-effect-convenience type-rep unify union infer2)
+  (require/private planet-requires type-effect-convenience type-rep unify union infer)
   (require-schemeunit)
   (require-galore)
   
@@ -46,7 +46,7 @@
                 (f t1 t2)))
   
   (define (i2-tests)
-    (test-suite "Tests for infer 2"
+    (test-suite "Tests for infer"
                 [i2-t (-v a) N ('a N)]
                 [i2-t (-pair (-v a) (-v a)) (-pair N (Un N B)) ('a (Un N B))]
                 [i2-t (-lst (-v a)) (-pair N (-pair N (-val null))) ('a N)]

@@ -12,8 +12,8 @@
     (syntax-case stx ()
       [(_ ann-stx ty)
        #`(check-type-equal? #,(format "~a" (syntax-object->datum #'ann-stx))  
-                            (parameterize ([current-type-names initial-type-names])
-                              (initialize-type-name-env initial-type-names)
+                            (parameterize (#;[current-type-names initial-type-names])
+                              #;(initialize-type-name-env initial-type-names)
                               (type-annotation #'ann-stx))
                             ty)]))
 

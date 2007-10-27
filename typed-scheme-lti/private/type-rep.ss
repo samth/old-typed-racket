@@ -47,8 +47,8 @@
   ;; flds : Listof[Type]
   ;; proc : Function Type
   (dt Struct (name parent flds proc) 
-      [#:frees (combine-frees (map free-vars* (list* proc parent flds)))
-               (combine-frees (map free-idxs* (list* proc parent flds)))])
+      [#:frees (combine-frees (map free-vars* (append (if proc (list proc) null) (if parent (list parent) null) flds)))
+               (combine-frees (map free-idxs* (append (if proc (list proc) null) (if parent (list parent) null) flds)))])
   
   ;; dom : Listof[Type]
   ;; rng : Type
@@ -57,11 +57,11 @@
   ;; els-eff : Effect
   ;; arr is NOT a Type
   (dt arr (dom rng rest thn-eff els-eff)
-      [#:frees (combine-frees (append (map flip-variances (map free-vars* dom))) 
+      [#:frees (combine-frees (append (map flip-variances (map free-vars* dom)) 
                                       (map free-vars* (append (list rng) 
                                                               (if rest (list rest) null)
                                                               thn-eff
-                                                              els-eff)))
+                                                              els-eff))))
                (combine-frees (append (map flip-variances (map free-idxs* dom))
                                       (map free-idxs* (append (list rng) 
                                                               (if rest (list rest) null)

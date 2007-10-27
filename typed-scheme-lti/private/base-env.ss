@@ -12,6 +12,7 @@
 
   
   (require
+   "extra-procs.ss"
    (all-except "type-rep.ss" make-arr)
    (only (lib "list.ss") foldl)
    "type-effect-convenience.ss"

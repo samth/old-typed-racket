@@ -230,6 +230,13 @@
   (define (instantiate type sc)
     (instantiate-many (list type) sc))
   
+  ;; fv : Type -> Listof[Name]
+  (define (fv t) (map car (free-vars* t)))
+  
+  ;; fv/list : Listof[Type] -> Listof[Name]
+  (define (fv/list ts) (map car (combine-frees (map free-vars* ts))))
+  
+  #;
   (define-values (fv fv/list)
     (let*
         ;; l accumulates the list of free variables

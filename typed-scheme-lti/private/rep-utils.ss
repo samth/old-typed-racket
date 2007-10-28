@@ -104,23 +104,35 @@
   (provide free-vars* free-idxs*)
   
   ;; (listof (listof free)) -> (listof free)
-  (define (combine-frees . args)
-    (unless (= (length args) 1)
-      (error "wrong args" args))
-    (let ([freess (car args)])
-      (define frees* (apply append freess))
-      (delete-duplicates frees* (lambda (x y) (eq? (car x) (car y))))))
+  (define (combine-frees freess)    
+    (define frees* (apply append freess))
+    (define ht (make-hash-table))
+    (define (combine-var v w)
+      (cond
+        [(eq? v w) v]
+        [(eq? v Constant) w]
+        [(eq? w Constant) v]
+        [else Invariant]))    
+    (let loop ([frees frees*])
+      (let* ([c (car frees)]
+             [sym (car c)]
+             [var (cadr c)]
+             [sym-var (hash-table-get ht sym (lambda () #f))])
+        (if sym-var
+            (hash-table-put! ht sym (combine-var var sym-var))
+            (hash-table-put! ht sym var))))
+    (hash-table-map ht list))
   
   ;; free -> free
   (define (flip-variances vs)
     (map (lambda (v)
            (list
+            (car v)
             (evcase 
              (cadr v)
              [Covariant Contravariant]
              [Contravariant Covariant]
-             [else (cadr v)])
-            (car v)))
+             [else (cadr v)])))
          vs))
   
   (define (without-below n frees)

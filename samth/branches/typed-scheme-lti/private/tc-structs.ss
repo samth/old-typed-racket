@@ -53,9 +53,13 @@
                       ([current-tvars 
                         (extend-env (list name) (list dummy-type) (current-tvars))])
                     (map parse-type tys))]
+           [fvs (fv/list types)]
+           #;[_ (printf "fvs: ~a ~n" fvs)]
            ;; if the name of the type is in the free variables, then there was a self reference
-           [rec? (ormap (lambda (s) (member name s)) (map fv types))])
-      (values types rec?)))  
+           [rec? (member name fvs)])
+      (values types rec?)))
+  
+  #;(trace parse-types/rec)
   
   ;; gets the fields of the parent type, if they exist
   ;; Option[Struct-Ty] -> Listof[Type]
@@ -147,6 +151,8 @@
         (if proc-ty
             (parse-types/rec name name-tvar (list proc-ty))
             (values (list #f) #f)))
+      #;(when proc-rec?
+        (printf "proc-ty: ~a~n" proc-ty-parsed))
       ;; create the actual structure type, and the types of the fields
       ;; that the outside world will see
       (mk/register-sty nm flds parent (get-parent-flds parent) types (or rec? proc-rec?)

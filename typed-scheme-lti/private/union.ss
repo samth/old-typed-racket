@@ -31,6 +31,7 @@
         [(subtype a b*) (list b*)]
         [(subtype b* a) (list a)]            
         [else (cons a b)]))
+    (union-count!)    
     (let ([types (remove-dups (sort (apply append (map flat args)) type<?))])
       (cond
         [(null? types) (make-union* null)]

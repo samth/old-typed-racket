@@ -16,10 +16,10 @@
   (dt Scope (t))
   
   ;; i is an nat
-  (dt B (i) [#:frees null (list (list i Covariant))])
+  (dt B (i) [#:frees empty-hash-table (make-immutable-hash-table (list (cons i Covariant)))])
   
   ;; n is a Name
-  (dt F (n) [#:frees (list (list n Covariant)) null])
+  (dt F (n) [#:frees (make-immutable-hash-table (list (cons n Covariant))) empty-hash-table])
   
   ;; left and right are Types
   (dt Pair (left right))
@@ -28,7 +28,7 @@
   (dt Vector (elem))
   
   ;; name is a Symbol (not a Name)
-  (dt Base (name) [#:frees null null])
+  (dt Base (name) [#:frees #f])
   
   ;; body is a Scope
   (dt Mu (body) #:no-provide [#:frees (free-vars* body) (without-below 1 (free-idxs* body))])    
@@ -79,7 +79,7 @@
   (dt Union (elems) [#:frees (combine-frees (map free-vars* elems))
                              (combine-frees (map free-idxs* elems))])
   
-  (dt Univ ())
+  (dt Univ () [#:frees #f])
   
   ;; types : Listof[Type]
   (dt Values (types) [#:frees (combine-frees (map free-vars* types))
@@ -130,9 +130,67 @@
       [(Var-True-Effect: v) eff]
       [(Var-False-Effect: v) eff]))
   
-  ;; varChanger : (Num Name -> Type) (Num Num -> Type) Type -> Type
-  (define (varChanger F-op B-op ty)    
+  ;; varChanger : (Num Name -> Type) (Num Num -> Type) Type -> Type  
+  (define-syntax (varChanger* stx)
+    (define (mk type-expr outer is-F key f-name f-expr b-name b-expr)
+      (with-syntax ([outer outer]
+                    [free-f* (if is-F #'free-vars* #'free-idxs*)])
+        (quasisyntax/loc stx          
+          (let loop ([outer 0] [ty #,type-expr])
+            (define (sb t) (loop outer t))
+            (let ([key-var #,key])
+              (match ty
+                #,@(if is-F #'([(? (lambda (t) (not (hash-table-get (free-f* t) key-var #f)))) ty]) #'())
+                ;; Variables
+                ;; Free vars
+                [(F: #,f-name)    #,f-expr]
+                ;; Bound vars
+                [(B: #,b-name)      #,b-expr]
+                ;; Recursive Cases
+                [(Pair: l r)   (*Pair (loop outer l) (loop outer r))]
+                [(Vector: elem)   (*Vector (loop outer elem))]
+                [(Hashtable: k v) (*Hashtable (loop outer k) (loop outer v))]
+                [(Param: in out) (*Param (loop outer in) (loop outer out))]
+                [(Struct: nm par fs proc)
+                 (*Struct nm par 
+                          (map sb fs) 
+                          (if proc (loop outer proc) proc))]
+                [(Union: elems) (*Union (remove-dups (sort (map sb elems) type<?)))]
+                [(Values: vs) (*Values (map sb vs))]
+                ;; Functions
+                [(Function: arities)
+                 (*Function (map (match-lambda
+                                   [(arr: ins out rest thn-eff els-eff)
+                                    (*arr (map sb ins)
+                                          (sb out)
+                                          (if rest (sb rest) #f)
+                                          (map (lambda (e) (sub-eff sb e)) thn-eff)
+                                          (map (lambda (e) (sub-eff sb e)) els-eff))])
+                                 arities))]
+                ;; Binding Forms
+                [(Mu: (Scope: body)) 
+                 (*Mu (*Scope (loop (add1 outer) body)))]
+                [(Poly: n body*)
+                 (let ([body (remove-scopes n body*)])
+                   (*Poly n (*Scope (loop (+ n outer) body))))]
+                ;; Trivial Cases
+                [(Base: _)   ty]
+                [(Opaque: _ _)   ty]
+                [(Value: _)   ty]
+                [(Univ:)   ty]
+                ))))))
     
+    (syntax-case stx ()
+      [(form ty #:idx key outer arg expr)
+       (mk #'ty #'outer #f #'key
+           #'f-name #'(*F f-name)
+           #'arg #'expr)]
+      [(form ty #:var key outer arg expr)
+       (mk #'ty #'outer #t #'key
+           #'arg #'expr
+           #'b-name #'(*B b-name))]))
+  
+  (define (varChanger F-op B-op ty)        
     (define (loop outer ty)
       (define (sb t) (loop outer t))
       (match ty
@@ -191,6 +249,12 @@
   ;; where n is the length of names  
   (define (abstract-many names ty)
     (define (nameTo name count type)
+      
+      (varChanger* type #:var name outer name*
+                   (if (eq? name name*)
+                       (*B (+ count outer))
+                       (*F name*)))      
+      #;
       (varChanger (lambda (outer name*)
                     (if (eq? name name*)
                         (*B (+ count outer))
@@ -210,6 +274,12 @@
   ;; where n is the length of types  
   (define (instantiate-many images sc)
     (define (replace image count ty)
+      
+      (varChanger* ty #:idx (+ count outer) outer idx
+                   (if (= (+ count outer) idx)
+                       image
+                       (*B idx)))
+      #;
       (varChanger (lambda (outer name*) (*F name*))
                   (lambda (outer idx)
                     (if (= (+ count outer) idx)
@@ -231,10 +301,10 @@
     (instantiate-many (list type) sc))
   
   ;; fv : Type -> Listof[Name]
-  (define (fv t) (map car (free-vars* t)))
+  (define (fv t) (hash-table-map (free-vars* t) (lambda (k v) k)))
   
   ;; fv/list : Listof[Type] -> Listof[Name]
-  (define (fv/list ts) (map car (combine-frees (map free-vars* ts))))
+  (define (fv/list ts) (hash-table-map (combine-frees (map free-vars* ts)) (lambda (k v) k)))
   
   #;
   (define-values (fv fv/list)
@@ -339,11 +409,13 @@
                    (list nps bp)))])))
   
   
-  
+  (provide free-vars*)
   ;; substitute : Type Name Type -> Type
   (define (substitute image name target)    
     (define (sb t) (substitute image name t))
     (match target
+      ;; if this variable is not free, we ignore it      
+      [(? (lambda (t) (not (hash-table-get (free-vars* t) name #f)))) target]
       ;; Variables%
       ;; Free vars
       [(F: name*)    (if (eq? name* name) image target)]

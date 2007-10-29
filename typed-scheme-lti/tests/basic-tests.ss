@@ -1,7 +1,7 @@
 
 #reader (planet "typed-reader.ss" ("plt" "typed-scheme.plt"))
 (module basic-tests (planet "typed-scheme.ss" ("plt" "typed-scheme.plt"))
-  
+  #|
   ;;syntax-only requires
   (require (only (lib "etc.ss") let+))
   (require (only (lib "match.ss") match))
@@ -85,7 +85,7 @@
           (foo)|#
           (= x1 y1)))
   (g (if (g (add1 x) (add1 (add1 x))) 10 100) 30)
-  
+  |#
   (define: mymap : (All (a b) ((a -> b) (list-of a) -> (list-of b)))
     (plambda: (a b) ([f : (a -> b)] [l : (list-of a)])
       (cond [(null? l) '()]

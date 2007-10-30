@@ -5,7 +5,9 @@
     (planet "test.ss" ("schematics" "schemeunit.plt" 2 3))
     (planet "graphical-ui.ss" ("schematics" "schemeunit.plt" 2 3))
     (planet "text-ui.ss" ("schematics" "schemeunit.plt" 2 3))
-    (planet "util.ss" ("schematics" "schemeunit.plt" 2 3)))
+    (planet "util.ss" ("schematics" "schemeunit.plt" 2 3))
+    (planet "random.ss" ("cce" "fasttest.plt" 1 1))
+    (planet "schemeunit.ss" ("cce" "fasttest.plt" 1 1)))
 
   
   (define-module galore

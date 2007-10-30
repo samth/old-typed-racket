@@ -109,7 +109,7 @@
            (lib "list.ss" "srfi" "1")
            (lib "etc.ss"))
   
-  (provide free-vars* free-idxs* empty-hash-table)
+  (provide free-vars* free-idxs* empty-hash-table make-invariant)
   
   ;; frees = HT[Idx,Variance] where Idx is either Symbol or Number
   ;; (listof frees) -> frees
@@ -132,20 +132,33 @@
                 (hash-table-put! ht sym var))))))
      freess)
     ht)
-  
+    
   ;; frees -> frees
   (define (flip-variances vs)
-    (make-immutable-hash-table     
-     (hash-table-map 
-      vs
-      (lambda (k v)
-        (cons
-         k
-         (evcase 
-          v
-          [Covariant Contravariant]
-          [Contravariant Covariant]
-          [else v]))))))
+    (hash-table-map* 
+     (lambda (k v) 
+       (evcase 
+        v
+        [Covariant Contravariant]
+        [Contravariant Covariant]
+        [else v]))
+     vs))
+  
+  (define (make-invariant vs)
+    (hash-table-map* 
+     (lambda (k v) Invariant)
+     vs))
+  
+  (define (hash-table-map* f ht)
+    (define new-ht (hash-table-copy ht))
+    (hash-table-for-each 
+     new-ht
+     (lambda (k v)
+       (hash-table-put! 
+        new-ht
+        k
+        (f k v))))
+    new-ht)
   
   (define (without-below n frees)
     (define new-ht (hash-table-copy frees))

@@ -25,7 +25,10 @@
   (dt Pair (left right))
   
   ;; elem is a Type
-  (dt Vector (elem))
+  (dt Vector (elem) [#:frees (make-invariant (free-vars* elem)) (make-invariant (free-idxs* elem))])
+  
+  ;; elem is a Type
+  (dt Box (elem) [#:frees (make-invariant (free-vars* elem)) (make-invariant (free-idxs* elem))])  
   
   ;; name is a Symbol (not a Name)
   (dt Base (name) [#:frees #f])

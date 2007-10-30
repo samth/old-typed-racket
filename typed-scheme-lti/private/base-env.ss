@@ -494,7 +494,7 @@
     ;; legacy abbreviations
     [top Univ]
     [str -String]
-    [number N]    
+    [number N]
     [boolean B]
     [symbol Sym]
     [list-of -Listof]    

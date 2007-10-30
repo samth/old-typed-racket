@@ -142,7 +142,7 @@
                         #`(let ([v b] [type 'ty-str])
                             (begin0 
                               v
-                              (printf ty-str)))))])))))))
+                              (printf type)))))])))))))
   
   )
 

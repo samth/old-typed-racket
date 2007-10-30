@@ -57,7 +57,9 @@
            (add-type-name-reference (stx-cadr stx))
            (make-pred-ty (list (parse-type #'dom)) (parse-type #'rng) (parse-type #'pred-ty)))]
         [(dom ... rest ::: -> rng)
-         (and (eq? (syntax-e #'->) '->) (symbolic-identifier=? #'::: (quote-syntax ..)))
+         (and (eq? (syntax-e #'->) '->) 
+              (or (symbolic-identifier=? #'::: (quote-syntax ..))
+                  (symbolic-identifier=? #'::: (quote-syntax ...))))
          (begin
            (add-type-name-reference #'->)
            (->* (map parse-type (syntax->list #'(dom ...))) (parse-type #'rest) (parse-type #'rng)))]

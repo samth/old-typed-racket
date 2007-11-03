@@ -94,14 +94,16 @@
                               (do-time "Typechecked")
                               (printf "checked ~a~n" module-name)
                               (printf "created ~a types~n" (count!))
-                              (printf "tried to create ~a types~n" (all-count!))
+                              #;(printf "tried to create ~a types~n" (all-count!))
                               (printf "created ~a union types~n" (union-count!))
                               ;; reconstruct the module with the extra code
                               #'(pmb rfs transformed-body2 ... extra-code check-syntax-help))))))))))
   
   (define-syntax (top-interaction stx)
-    (syntax-case stx (module)
-      [(_ module . rest) #'(module . rest)]
+    (syntax-case stx ()
+      [(_ . (module . rest))
+       (eq? 'module (syntax-e #'module))
+       #'(module . rest)]
       ((_ . form)
        (begin
          (set-box! typed-context? #t)
@@ -118,7 +120,6 @@
                   ;[__ (do-time "Local Expand Done")]
                   ;; typecheck the body, and produce syntax-time code that registers types
                   [type (tc-toplevel-form body2)])
-             (define x 3)
              ;(do-time "Typechecked")
              ;(printf "checked ~a~n" (syntax-property stx 'enclosing-module-name))
              (kernel-syntax-case body2 ()

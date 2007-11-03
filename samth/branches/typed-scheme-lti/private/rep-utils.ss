@@ -64,7 +64,7 @@
        (define *name
          (let ([table (make-ht)])
            (lambda (arg ...)
-             (all-count!)
+             #;(all-count!)
              (let ([key key-expr])
                (hash-table-get table key
                                (lambda ()
@@ -73,10 +73,10 @@
                                    new)))))))]))
   
   (define (make-count!)
-    #;
+    
     (let ([state 0])
       (lambda () (begin0 state (set! state (add1 state)))))   
-    
+    #;
     (let ([ch (make-channel)])
       (thread (lambda () (let loop ([n 0]) (channel-put ch n) (loop (add1 n)))))
       (lambda () (channel-get ch))))

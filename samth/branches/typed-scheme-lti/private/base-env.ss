@@ -89,7 +89,7 @@
        (eqv? (-> Univ Univ B))
        (equal? (-> Univ Univ B))
        (even? (-> N B))
-       [assert (-poly (a) (-> (Un a (-val #f)) a))]
+       [assert (-poly (a) (-> (*Un a (-val #f)) a))]
        [gensym (cl-> [(Sym) Sym]
                      [() Sym])]
        [string-append (->* null -String -String)]
@@ -175,10 +175,10 @@
        [reverse (make-Poly '(a) (-> (make-lst (-v a)) (make-lst (-v a))))]
        [append (-poly (a) (->* (list) (-lst a) (-lst a)))]
        [length (make-Poly '(a) (-> (make-lst (-v a)) N))]
-       [memq (make-Poly (list 'a) (-> (-v a) (make-lst (-v a)) (Un (-val #f) (make-lst (-v a)))))]
-       [memv (make-Poly (list 'a) (-> (-v a) (make-lst (-v a)) (Un (-val #f) (make-lst (-v a)))))]
+       [memq (make-Poly (list 'a) (-> (-v a) (make-lst (-v a)) (-opt (make-lst (-v a)))))]
+       [memv (make-Poly (list 'a) (-> (-v a) (make-lst (-v a)) (-opt (make-lst (-v a)))))]
        [member 
-        (-poly (a) (a (-lst a) . -> . (Un (-val #f) (-lst a))))]
+        (-poly (a) (a (-lst a) . -> . (-opt (-lst a))))]
        
        [string<? (->* (list -String -String) -String B)]
        [string>? (->* (list -String -String) -String B)]
@@ -221,7 +221,7 @@
                 [(N) N]
                 [() N])]
        
-       [assoc (-poly (a b) (a (-lst (-pair a b)) . -> . (Un (-pair a b) (-val #f))))]
+       [assoc (-poly (a b) (a (-lst (-pair a b)) . -> . (-opt (-pair a b))))]
        
        [list-ref (-poly (a) ((-lst a) N . -> . a))]
        [positive? (-> N B)]
@@ -231,8 +231,8 @@
        
        [apply (-poly (a b) (((list) a . ->* . b) (-lst a) . -> . b))]
        
-       [call/cc (-poly (a b) (((a . -> . (Un)) . -> . b) . -> . (Un a b)))]
-       [call/ec (-poly (a b) (((a . -> . (Un)) . -> . b) . -> . (Un a b)))]
+       [call/cc (-poly (a b) (((a . -> . (Un)) . -> . b) . -> . (*Un a b)))]
+       [call/ec (-poly (a b) (((a . -> . (Un)) . -> . b) . -> . (*Un a b)))]
        
        [quotient (N N . -> . N)]
        [remainder (N N . -> . N)]
@@ -242,7 +242,7 @@
        
        [parameterization-key Sym]
        [extend-parameterization (-poly (a b) (-> Univ (-Param a b) a Univ))]
-       [continuation-mark-set-first (-> (Un (-val #f) -Cont-Mark-Set) Univ Univ)]
+       [continuation-mark-set-first (-> (-opt -Cont-Mark-Set) Univ Univ)]
        [make-parameter (-poly (a b) (cl-> [(a) (-Param a a)]
                                          [(b (a . -> . b)) (-Param a b)]))]
        [current-directory (-Param -Pathlike -Path)]
@@ -254,18 +254,18 @@
        ;; regexp stuff
        [regexp-match 
         (cl->
-         [((Un -String -Regexp) -String) (Un (-val #f) (-lst (Un (-val #f) -String)))]
-         [(-Pattern -String) (Un (-val #f) (-lst (Un (-val #f) -Bytes -String)))]
-         [(-Pattern -String N) (Un (-val #f) (-lst (Un (-val #f) -Bytes -String)))]
-         [(-Pattern -String N (Un N (-val #f))) (Un (-val #f) (-lst (Un (-val #f) -Bytes -String)))]
-         [(-Pattern -String N (Un N (-val #f)) (Un (-val #f) -Output-Port)) (-lst (Un (-val #f) -Bytes -String))]
-         [(-Pattern -String (Un (-val #f) N) (Un (-val #f) -Output-Port)) (-lst (Un (-val #f) -Bytes -String))]
-         [(-Pattern -String (Un (-val #f) -Output-Port)) (-lst (Un (-val #f) -Bytes -String))]
-         [(-Pattern (Un -Input-Port -Bytes)) (Un (-val #f) (-lst (Un (-val #f) -Bytes)))]
-         [(-Pattern (Un -Input-Port -Bytes) N) (Un (-val #f) (-lst (Un (-val #f) -Bytes)))]
-         [(-Pattern (Un -Input-Port -Bytes) N (Un N (-val #f))) (Un (-val #f) (-lst (Un (-val #f) -Bytes)))]
-         [(-Pattern (Un -Input-Port -Bytes) (Un N (-val #f))) (Un (-val #f) (-lst (Un (-val #f) -Bytes)))]
-         [(-Pattern (Un -Input-Port -Bytes) N (Un N (-val #f)) (Un (-val #f) -Output-Port)) (-lst (Un (-val #f) -Bytes))])]
+         [((*Un -String -Regexp) -String) (-opt (-lst (-opt -String)))]
+         [(-Pattern -String) (-opt (-lst (-opt (*Un -Bytes -String))))]
+         [(-Pattern -String N) (-opt (-lst (-opt (*Un -Bytes -String))))]
+         [(-Pattern -String N (-opt N)) (-opt (-lst (-opt (*Un -Bytes -String))))]
+         [(-Pattern -String N (-opt N) (-opt -Output-Port)) (-lst (-opt (*Un -Bytes -String)))]
+         [(-Pattern -String (-opt N) (-opt -Output-Port)) (-lst (-opt (*Un -Bytes -String)))]
+         [(-Pattern -String (-opt -Output-Port)) (-lst (-opt (*Un -Bytes -String)))]
+         [(-Pattern (*Un -Input-Port -Bytes)) (-opt (-lst (-opt -Bytes)))]
+         [(-Pattern (*Un -Input-Port -Bytes) N) (-opt (-lst (-opt -Bytes)))]
+         [(-Pattern (*Un -Input-Port -Bytes) N (-opt N)) (-opt (-lst (-opt -Bytes)))]
+         [(-Pattern (*Un -Input-Port -Bytes) (-opt N)) (-opt (-lst (-opt -Bytes)))]
+         [(-Pattern (*Un -Input-Port -Bytes) N (-opt N) (-opt -Output-Port)) (-lst (-opt -Bytes))])]
         
        
        [number->string (N . -> . -String)]
@@ -346,18 +346,19 @@
        [directory-list (cl-> [() (-lst -Path)]
                              [(-Path) (-lst -Path)])]
        
-       [make-hash-table (-poly (a b) 
+       [make-hash-table (let ([ht-opt (*Un (-val 'weak) (-val 'equal))])
+                               (-poly (a b) 
                                (cl-> [() (-HT a b)]
-                                     [((Un (-val 'weak) (-val 'equal))) (-HT a b)]
-                                     [((Un (-val 'weak) (-val 'equal)) (Un (-val 'weak) (-val 'equal))) (-HT a b)]))]
+                                     [(ht-opt) (-HT a b)]
+                                     [(ht-opt ht-opt) (-HT a b)])))]
        
        [hash-table-put! (-poly (a b) ((-HT a b) a b . -> . -Void))]
        [hash-table-map (-poly (a b c) ((-HT a b) (a b . -> . c) . -> . (-lst c)))]
        [hash-table-get (-poly (a b c)
                               (cl->
                                (((-HT a b) a) b)
-                               (((-HT a b) a (-> c)) (Un b c))
-                               (((-HT a b) a c) (Un b c))))]
+                               (((-HT a b) a (-> c)) (*Un b c))
+                               (((-HT a b) a c) (*Un b c))))]
        #;[hash-table-index (-poly (a b) ((-HT a b) a b . -> . -Void))]
        
        [bytes (->* (list) N -Bytes)]
@@ -377,17 +378,17 @@
        [copy-file (-> -Pathlike -Pathlike -Void)]  
        [bytes->string/utf-8 (-> -Bytes -String)]
        ;; make-promise #;
-       [(eval '(cadr (syntax->list (expand #'(delay 3))))) (-poly (a) (-> (-> a) (-Promise a)))]
+       [(eval '(cadr (syntax->list (expand #'(delay 3)))) (make-namespace)) (-poly (a) (-> (-> a) (-Promise a)))]
        ;; qq-append #;
-       [(eval '(cadr (syntax->list (expand #'`(,@'()))))) (-poly (a b) 
+       [(eval '(cadr (syntax->list (expand #'`(,@'())))) (make-namespace)) (-poly (a b) 
                                                                  (cl->*
                                                                   (-> (-lst a) (-val '()) (-lst a))
-                                                                  (-> (-lst a) (-lst b) (-lst (Un a b)))))]
+                                                                  (-> (-lst a) (-lst b) (-lst (*Un a b)))))]
        [force (-poly (a) (-> (-Promise a) a))]
        [bytes<? (->* (list -Bytes) -Bytes B)]
        [regexp-replace* 
         (cl->*
-         (-Pattern (Un -Bytes -String) (Un -Bytes -String) . -> . -Bytes)
+         (-Pattern (*Un -Bytes -String) (*Un -Bytes -String) . -> . -Bytes)
          (-Pattern -String -String . -> . -String))]
        [peek-char
         (cl->*
@@ -432,7 +433,7 @@
        
        [delete-file (-> -Pathlike -Void)]
        [make-namespace (cl->* (-> -Namespace)
-                              (-> (Un (-val 'empty) (-val 'initial)) -Namespace))]
+                              (-> (*Un (-val 'empty) (-val 'initial)) -Namespace))]
        [eval (-> -Sexp Univ)]
    
        [exit (-> (Un))]
@@ -477,7 +478,7 @@
     [Regexp -Regexp]
     [PRegexp -PRegexp]
     [Char -Char]
-    [Option (-poly (a) (Un (-val #f) a))]
+    [Option (-poly (a) (-opt a))]
     [Sexp -Sexp]
     [List (-lst Univ)]
     [Listof -Listof]

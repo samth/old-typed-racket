@@ -121,7 +121,9 @@
   (define (list->values-ty l)
     (if (= 1 (length l)) (car l) (-values l)))
   
-  (define *Un Un)
+  (define-syntax *Un
+    (syntax-rules ()
+      [(_ . args) (make-Union (list . args))]))
 
   
   (define -pair make-Pair)
@@ -146,7 +148,7 @@
   (define -NE (-mu x (*Un N (-pair x (-pair Sym (-pair x (-val null)))))))
   
   (define (Un/eff . args)
-    (apply *Un (map tc-result-t args)))
+    (apply Un (map tc-result-t args)))
 
   (define -Param make-Param)
   
@@ -156,12 +158,13 @@
        (->* in out : (list (make-Latent-Restrict-Effect t)) (list (make-Latent-Remove-Effect t)))]
       [(t) (make-pred-ty (list Univ) B t)]))
 
-  (define -Pathlike (Un -Path -String))
-  (define -Pathlike* (Un (-val 'up) (-val 'same) -Path -String))
-  (define -Pattern (Un -String -Bytes -Regexp -Byte-Regexp -PRegexp -Byte-PRegexp))
+  (define -Pathlike (*Un -Path -String))
+  (define -Pathlike* (*Un (-val 'up) (-val 'same) -Path -String))
+  (define -Pattern (*Un -String -Bytes -Regexp -Byte-Regexp -PRegexp -Byte-PRegexp))
   (define -Byte N)
   
-  (define (-opt t) (Un (-val #f) t))
+  ;; DO NOT USE if t contains #f
+  (define (-opt t) (*Un (-val #f) t))
   
   (define-syntax (make-env stx)
     (syntax-case stx ()

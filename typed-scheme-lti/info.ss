@@ -15,12 +15,12 @@
   (define homepage "http://www.ccs.neu.edu/home/samth/typed-scheme.html")
   
   (define primary-file "typed-scheme.ss")
-  (define required-core-version "369.2")
-  (define version "0.9")
+  (define required-core-version "371")
+  (define version "0.91")
   
   (define blurb `("This language allows the definition and execution of Typed Scheme programs."))
   
-  (define scribblings '(("doc/manual.scrbl" (#;multi-page))))
+ #; (define scribblings '(("doc/manual.scrbl" (#;multi-page))))
 
   )
 

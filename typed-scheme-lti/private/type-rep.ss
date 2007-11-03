@@ -170,6 +170,9 @@
                                           (map (lambda (e) (sub-eff sb e)) thn-eff)
                                           (map (lambda (e) (sub-eff sb e)) els-eff))])
                                  arities))]
+                ;; special case for lists
+                [(Mu: (Scope: (Union: (list (Value: '()) (Pair: elem (B: 0))))))
+                 (*Mu (*Scope (*Union (list (*Value null) (*Pair (loop (add1 outer) elem) (*B 0))))))]
                 ;; Binding Forms
                 [(Mu: (Scope: body)) 
                  (*Mu (*Scope (loop (add1 outer) body)))]
@@ -445,6 +448,8 @@
                                 (map (lambda (e) (sub-eff sb e)) thn-eff)
                                 (map (lambda (e) (sub-eff sb e)) els-eff))])
                        arities))]
+      [(Mu: (Scope: (Union: (list (Value: '()) (Pair: elem (B: 0))))))
+       (*Mu (*Scope (*Union (list (*Value null) (*Pair (sb elem) (*B 0))))))]
       ;; Binding Forms
       [(Mu: (Scope: body)) 
        (*Mu (*Scope (sb body)))]

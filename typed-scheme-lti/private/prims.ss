@@ -35,20 +35,25 @@ This file defines three sorts of primitives. All of them are provided into any m
    "utils.ss"   
    "tc-utils.ss"
    "type-name-env.ss"
-   "type-contract.ss")
+   "type-contract.ss"
+   "base-env.ss")
   
   (require "require-contract.ss"
            "internal-forms.ss"
            "planet-requires.ss"
            (lib "etc.ss")
-           (lib "contract.ss")
+           (all-except (lib "contract.ss") ->)
+           (rename (lib "contract.ss") c-> ->)
            "../CSU660/datatype.ss"
-           (lib "struct.ss"))
+           (lib "struct.ss")
+           "base-env.ss")
   
  
-  
+   
   (require-for-syntax-libs)
   
+  
+
   (define-for-syntax (ignore stx) (syntax-property stx 'typechecker:ignore #t))
 
   
@@ -78,7 +83,7 @@ This file defines three sorts of primitives. All of them are provided into any m
     (syntax-case stx ()
       [(_ ty pred lib)
        (and (identifier? #'ty) (identifier? #'pred))
-       (with-syntax ([pred-cnt #'(any/c . -> . boolean?)])
+       (with-syntax ([pred-cnt #'(any/c . c-> . boolean?)])
          (begin
            (register-type-name #'ty (make-Opaque #'pred (syntax-local-certifier)))
            (quasisyntax/loc stx
@@ -397,7 +402,6 @@ This file defines three sorts of primitives. All of them are provided into any m
       [(cond* cl cls ...)
        #'(cond cl [else (cond* cls ...)])]
       [(cond*) #'(cond)]))
-  
   
   
   )

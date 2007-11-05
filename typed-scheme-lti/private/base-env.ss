@@ -378,12 +378,12 @@
        [copy-file (-> -Pathlike -Pathlike -Void)]  
        [bytes->string/utf-8 (-> -Bytes -String)]
        ;; make-promise #;
-       [(eval '(cadr (syntax->list (expand #'(delay 3)))) (make-namespace)) (-poly (a) (-> (-> a) (-Promise a)))]
+       [(cadr (syntax->list (expand #'(delay 3)))) (-poly (a) (-> (-> a) (-Promise a)))]
        ;; qq-append #;
-       [(eval '(cadr (syntax->list (expand #'`(,@'())))) (make-namespace)) (-poly (a b) 
-                                                                 (cl->*
-                                                                  (-> (-lst a) (-val '()) (-lst a))
-                                                                  (-> (-lst a) (-lst b) (-lst (*Un a b)))))]
+       [(cadr (syntax->list (expand #'`(,@'())))) (-poly (a b) 
+                                                         (cl->*
+                                                          (-> (-lst a) (-val '()) (-lst a))
+                                                          (-> (-lst a) (-lst b) (-lst (*Un a b)))))]
        [force (-poly (a) (-> (-Promise a) a))]
        [bytes<? (->* (list -Bytes) -Bytes B)]
        [regexp-replace* 
@@ -457,12 +457,24 @@
   
   (define-syntax (define-other-types stx)
     (syntax-case stx ()
-      [(_ provider nm ...)
+      [(_ provider requirer nm ...)
        (with-syntax ([(nms ...) (generate-temporaries #'(nm ...))])
-         #'(begin (define-syntax nms (lambda (stx) (raise-syntax-error 'type-check "type name used out of context" stx))) ...
-                  (provide nms) ...
+         (let ([body-maker (lambda (stx)
+                             (map (lambda (nm nms) (datum->syntax-object stx `(rename ,#'mod ,nm ,nms)))
+                                  (syntax->list #'(nm ...))
+                                  (syntax->list #'(nms ...))))])
+           #'(begin (define-syntax nms (lambda (stx) (raise-syntax-error 'type-check "type name used out of context" stx))) ...
+                    (provide nms) ...
+                    (define-syntax (requirer stx) 
+                      (syntax-case stx () 
+                        [(_ mod) 
+                         (datum->syntax-object
+                          stx
+                          `(require . ,(map (lambda (nm* nms*) (datum->syntax-object stx `(rename ,#'mod ,nm* ,nms*)))
+                                            (list 'nm ...)
+                                            (list #'nms ...))))]))                  
                   (define-syntax provider (lambda (stx) #'(begin (provide (rename nms nm)) ...)))
-                  (provide provider)))]))
+                  (provide provider requirer))))]))
   
   ;; the initial set of available type names
   (define-tname-env initial-type-names provide-tnames
@@ -498,13 +510,18 @@
     [number N]
     [boolean B]
     [symbol Sym]
-    [list-of -Listof]    
+    [list-of -Listof]
     )
   
   (define-other-types
     provide-extra-tnames
+    require-extra-tnames
+    
+    
     -> U mu Un All Opaque Vectorof
     Parameter Tuple
-    )
+    )  
+  
+  (provide-extra-tnames)
 
   )

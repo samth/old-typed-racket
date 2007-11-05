@@ -176,7 +176,7 @@
                        (identifier? #'nm)
                        #`(list  #'nm ty)]
                       [(e ty)
-                       #'(list e ty)]))
+                       #'(list (eval 'e (make-namespace)) ty)]))
                   (syntax->list #'(e ...))))]))
 
   

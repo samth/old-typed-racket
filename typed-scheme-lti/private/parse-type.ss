@@ -28,13 +28,7 @@
   (define (parse-type stx)    
     (parameterize ([current-orig-stx stx])
       (syntax-case* stx ()
-        symbolic-identifier=?
-        [id
-         (identifier? #'id)
-         (lookup (current-tvars) (syntax-e #'id)
-                 (lambda (key)
-                   (lookup-type-name #'id
-                                     (lambda () (tc-error "unbound type ~a" key)))))]     
+        symbolic-identifier=?             
         [(fst . rst)
          (not (syntax->list #'rst))
          (-pair (parse-type #'fst) (parse-type #'rst))]
@@ -119,7 +113,7 @@
            (parameterize ([current-tvars (extend-env vars tvars (current-tvars))])
              (make-Poly vars (parse-type #'t))))]        
         [(Opaque p?) 
-         (eq? (syntax-e #'Opaque) 'Opqaue)
+         (eq? (syntax-e #'Opaque) 'Opaque)
          (begin
            (add-type-name-reference #'Opaque)
            (make-Opaque #'p? (syntax-local-certifier)))]
@@ -133,13 +127,22 @@
          (begin
            (add-type-name-reference #'Parameter)
            (-Param (parse-type #'t1) (parse-type #'t2)))]
-        [(All . rest) (eq? (syntax-e #'All) 'All) (tc-error "All: bad syntax")]
-        [(Opaque . rest) (eq? (syntax-e #'Opaque) 'Opqaue) (tc-error "Opaque: bad syntax")]
-        [(U . rest) (eq? (syntax-e #'U) 'U) (tc-error "Union: bad syntax")]
-        [(Vectorof . rest) (eq? (syntax-e #'Vectorof) 'Vectorof) (tc-error "Vectorof: bad syntax")]
-        [(mu . rest) (eq? (syntax-e #'mu) 'mu) (tc-error "mu: bad syntax")]
-        [(Un . rest) (eq? (syntax-e #'Un) 'Un) (tc-error "Union: bad syntax")]
-        [(t ... -> . rest) (eq? (syntax-e #'->) '->) (tc-error "->: bad syntax")]
+        
+        ;;[(All . rest) (eq? (syntax-e #'All) 'All) (tc-error "All: bad syntax")]
+        ;;[(Opaque . rest) (eq? (syntax-e #'Opaque) 'Opqaue) (tc-error "Opaque: bad syntax")]
+        ;;[(U . rest) (eq? (syntax-e #'U) 'U) (tc-error "Union: bad syntax")]
+        ;;[(Vectorof . rest) (eq? (syntax-e #'Vectorof) 'Vectorof) (tc-error "Vectorof: bad syntax")]
+        ;;[(mu . rest) (eq? (syntax-e #'mu) 'mu) (tc-error "mu: bad syntax")]
+        ;;[(Un . rest) (eq? (syntax-e #'Un) 'Un) (tc-error "Union: bad syntax")]
+        ;;[(t ... -> . rest) (eq? (syntax-e #'->) '->) (tc-error "->: bad syntax")]
+        
+        [id
+         (identifier? #'id)
+         (lookup (current-tvars) (syntax-e #'id)
+                 (lambda (key)
+                   (lookup-type-name #'id                                     
+                                     (lambda () (display #'id) (newline)(tc-error "unbound type ~a" key)))))]
+        
         [(id arg args ...)
          (identifier? #'id)
          (let ([ty (parse-type #'id)])

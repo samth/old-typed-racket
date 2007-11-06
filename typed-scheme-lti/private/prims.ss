@@ -35,8 +35,7 @@ This file defines three sorts of primitives. All of them are provided into any m
    "utils.ss"   
    "tc-utils.ss"
    "type-name-env.ss"
-   "type-contract.ss"
-   "base-env.ss")
+   "type-contract.ss")
   
   (require "require-contract.ss"
            "internal-forms.ss"

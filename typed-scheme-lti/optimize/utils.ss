@@ -178,7 +178,7 @@
     (let loop ([i 0] [ps (regexp-match-positions* glob-item-re glob)] [r '()])
       (if (null? ps)
         (regexp (apply string-append
-                       (reverse! (cons (regexp-quote (substring glob i)) r))))
+                       (reverse (cons (regexp-quote (substring glob i)) r))))
         (loop (cdar ps) (cdr ps)
               ;; length=1 is only for `*' or `?'
               (cons (if (= 1 (- (cdar ps) (caar ps)))

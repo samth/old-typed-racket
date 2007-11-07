@@ -141,7 +141,7 @@
          (lookup (current-tvars) (syntax-e #'id)
                  (lambda (key)
                    (lookup-type-name #'id                                     
-                                     (lambda () (display #'id) (newline)(tc-error "unbound type ~a" key)))))]
+                                     (lambda () (tc-error "unbound type ~a" key)))))]
         
         [(id arg args ...)
          (identifier? #'id)

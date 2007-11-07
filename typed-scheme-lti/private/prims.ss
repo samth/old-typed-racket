@@ -248,15 +248,19 @@ This file defines three sorts of primitives. All of them are provided into any m
   
   (define-syntax (define-type-alias stx)
     (syntax-case stx ()
-      [(_ tname . rest) 
+      [(_ tname rest) 
        (identifier? #'tname)
-       #`(begin
-           #,(ignore #'(define-syntax tname (lambda (stx) (raise-syntax-error 'type-check "type name used out of context" stx))))
-           (#%app void (quote-syntax (define-type-alias-internal tname . rest))))]
-      [(_ (tname . args) . rest)
-       #`(begin           
-           #,(ignore #'(define-syntax tname (lambda (stx) (raise-syntax-error 'type-check "type name used out of context" stx))))
-           (#%app void (quote-syntax (define-type-alias-internal (tname . args) . rest))))]))
+       (begin
+         (register-type-name #'tname (parse-type #'rest))
+         #`(begin
+             #,(ignore #'(define-syntax tname (lambda (stx) (raise-syntax-error 'type-check "type name used out of context" stx))))
+             (#%app void (quote-syntax (define-type-alias-internal tname . rest)))))]
+      [(_ (tname . args) rest)
+       (begin
+         (register-type-name #'tname (parse-type (syntax/loc #'rest (All args rest))))
+         #`(begin           
+             #,(ignore #'(define-syntax tname (lambda (stx) (raise-syntax-error 'type-check "type name used out of context" stx))))
+             (#%app void (quote-syntax (define-type-alias-internal (tname . args) . rest)))))]))
        
   (define-syntax (define-typed-struct/exec stx)
     (syntax-case stx (:)

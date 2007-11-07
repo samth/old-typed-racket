@@ -105,7 +105,7 @@
                   (module-identifier-mapping-put! identifier-table id c)
                   c))))
   
-  (require (lib "define-struct.ss" "big")
+  (require #;(lib "define-struct.ss" "big")
            (lib "list.ss" "srfi" "1")
            (lib "etc.ss"))
   

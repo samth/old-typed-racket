@@ -208,7 +208,7 @@
   (define (filter pred? l)
     (let loop ([l l] [r '()])
       (if (null? l)
-        (reverse! r)
+        (reverse r)
         (loop (cdr l) (if (pred? (car l)) (cons (car l) r) r)))))
   (define (mapconcat f l sep) ; like the Emacs function
     (if (null? l)
@@ -297,7 +297,7 @@
                             (andmap same-*p/*v? x y))]))
     (let loop ([l l] [r '()])
       (if (null? l)
-        (reverse! r)
+        (reverse r)
         (let ([x (car l)] [l (cdr l)])
           (loop l (if (or (ormap (lambda (y) (same-*p/*v? x y)) r)
                           ;; if trying variants, then don't add unexploded ones

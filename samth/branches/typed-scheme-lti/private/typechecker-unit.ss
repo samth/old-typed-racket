@@ -103,11 +103,12 @@
       [(list (tc-result: t1 te1 ee1) t2)
        (unless (subtype t1 t2)
          (tc-error "Expected ~a, but got ~a" t2 t1))
-       expected]
+       (ret expected)]
       [(list t1 t2)
        (unless (subtype t1 t2)
          (tc-error "Expected ~a, but got ~a" t2 t1))
-       expected]))
+       (ret expected)]
+      [_ (error "bad arguments to check-below")]))
   
   (define (tc-expr/check form expected)
     (parameterize ([current-orig-stx form])
@@ -499,7 +500,7 @@
          [(define-values (var ...) expr)
           (let* ([vars (syntax->list #'(var ...))]
                  [ts (map lookup-type vars)])
-            (check-expr form #'expr (list->values-ty ts)))]
+            (tc-expr/check #'expr (list->values-ty ts)))]
         ;; to handle the top-level, we have to recur into begins
          [(begin) (void)]
          [(begin . rest)

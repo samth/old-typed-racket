@@ -29,8 +29,8 @@
   ;; combinators for typechecking in the context of effects
   ;; t/f tells us whether this is the true or the false branch of an if
   ;;      neccessary for handling true/false effects
-  ;; Boolean Expr listof[Effect] -> TC-Result
-  (define (tc-expr/eff t/f expr effs)
+  ;; Boolean Expr listof[Effect] option[type] -> TC-Result
+  (define (tc-expr/eff t/f expr effs expected)
     ;; this flag represents whether the refinement proves that this expression cannot be executed
     (let ([flag (box #f)])
       ;; this does the operation on the old type
@@ -54,7 +54,7 @@
             [(check-rest f t v) (check-rest (type-op f t) v)]))
         (if (null? effs)
             ;; base case
-            (let ([ty (tc-expr expr)])
+            (let ([ty (if expected (tc-expr/check expr expected) (tc-expr expr))])
               (if (unbox flag) 
                   ;; the expr can't be executed, return the empty type
                   (ret (Un)) 
@@ -90,10 +90,10 @@
   (define (tc/if-twoarm tst thn els)
     ;; check in the context of the effects, and return
     (match-let* ([(tc-result: tst-ty tst-thn-eff tst-els-eff) (tc-expr tst)]
-                 [(tc-result: thn-ty thn-thn-eff thn-els-eff) (tc-expr/eff #t thn tst-thn-eff)]
+                 [(tc-result: thn-ty thn-thn-eff thn-els-eff) (tc-expr/eff #t thn tst-thn-eff #f)]
                  #;[_ (printf "v is ~a~n" v)]
                  #;[c (current-milliseconds)]
-                 [(tc-result: els-ty els-thn-eff els-els-eff) (tc-expr/eff #f els tst-els-eff)])
+                 [(tc-result: els-ty els-thn-eff els-els-eff) (tc-expr/eff #f els tst-els-eff #f)])
       #;(printf "v now is ~a~n" (ret els-ty els-thn-eff els-els-eff))
       #;(printf "els-ty ~a ~a~n" 
               els-ty c)
@@ -146,10 +146,13 @@
   (define (tc/if-twoarm/check tst thn els expected)
     ;; check in the context of the effects, and return
     (match-let* ([(tc-result: tst-ty tst-thn-eff tst-els-eff) (tc-expr tst)]
-                 [(tc-result: thn-ty thn-thn-eff thn-els-eff) (tc-expr/eff #t thn tst-thn-eff)]
+                 #;[_ (printf "got to here 0~n")]
+                 [(tc-result: thn-ty thn-thn-eff thn-els-eff) (tc-expr/eff #t thn tst-thn-eff expected)]
                  #;[_ (printf "v is ~a~n" v)]
                  #;[c (current-milliseconds)]
-                 [(tc-result: els-ty els-thn-eff els-els-eff) (tc-expr/eff #f els tst-els-eff)])
+                 #;[_ (printf "got to here 1~n")]
+                 [(tc-result: els-ty els-thn-eff els-els-eff) (tc-expr/eff #f els tst-els-eff expected)]
+                 #;[_ (printf "got to here 2~n")])
       #;(printf "v now is ~a~n" (ret els-ty els-thn-eff els-els-eff))
       #;(printf "els-ty ~a ~a~n" 
               els-ty c)
@@ -201,7 +204,5 @@
               (ret t))])))
 
         
-  ;(trace tc-expr/eff)
-
   
   )

@@ -53,6 +53,11 @@
             (do (lambda (x) x) names types inferred-types)))))
   |#
   
+  (define (tc/letrec-values/check namess exprs body form expected)
+    (let ([t (tc/letrec-values namess exprs body form)])
+      (check-below t expected)
+      t))
+  
   (define (tc/letrec-values namess exprs body form)
     (let* ([names (map syntax->list (syntax->list namess))]
            [flat-names (apply append names)]
@@ -66,7 +71,7 @@
           ;; if none of the names bound in the letrec are free vars of this rhs
           [(not (ormap (lambda (n) (member1 n flat-names bound-identifier=?)) (free-vars (car exprs))))
            ;; then check this expression separately
-           (let ([t (tc-expr/t (car exprs))])                 
+           (let ([t (tc-expr/t (car exprs))])               
              (with-lexical-env/extend
               (list (car names))
               (list (get-type/infer (car names) t))
@@ -87,6 +92,11 @@
            ;; the clauses for error reporting
            [clauses (syntax-case form () [(lv cl . b) (syntax->list #'cl)])])
       (do-check (lambda (x) x) names types form inferred-types body clauses)))
+  
+  (define (tc/let-values/check namess exprs body form expected)
+    (let ([t (tc/let-values namess exprs body form)])
+      (check-below t expected)
+      t))
 
   
   )

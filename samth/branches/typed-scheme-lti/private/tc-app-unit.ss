@@ -11,6 +11,7 @@
            "infer.ss"
            "type-effect-convenience.ss"
            "type-effect-printer.ss"
+           "type-annotation.ss"
            (lib "pretty.ss")
            (lib "trace.ss")
            (lib "kerncase.ss" "syntax"))
@@ -19,7 +20,7 @@
   (require-for-syntax (lib "plt-match.ss") "internal-forms.ss")
 
   
-  (import typechecker^)
+  (import typechecker^ tc-lambda^)
   (export tc-app^)
   
     
@@ -231,7 +232,16 @@
   
   ;(trace tc/funapp)
   
-  (define (tc/app form)
+  (define (tc/app form) (tc/app/internal form #f))
+  
+  (define (tc/app/check form expected)
+    (define t (tc/app/internal form expected))
+    (check-below t expected)
+    (ret expected))
+  
+  
+  
+  (define (tc/app/internal form expected)
     (kernel-syntax-case* form #f 
       (values apply not list list* call-with-values) ;; the special-cased functions     
       ;; call-with-values
@@ -280,7 +290,16 @@
          [(tc-result: t thn-eff els-eff)
           (ret B (map var->type-eff els-eff) (map var->type-eff thn-eff))])]
       ;; special case for `apply'
-      [(#%app apply f . args) (tc/apply #'f #'args)]         
+      [(#%app apply f . args) (tc/apply #'f #'args)]    
+      ;; special case when argument needs inference
+      [(#%app (letrec-values ([(lp) (lambda (args ...) . body)]) lp*) . actuals)
+       (and expected
+            (not (andmap type-annotation (syntax->list #'(args ...))))
+            (module-identifier=? #'lp #'lp*))
+       (let ([ts (map tc-expr/t (syntax->list #'actuals))])
+         (tc/rec-lambda/check form #'(args ...) #'body #'lp ts expected)
+         (ret expected))]
+      ;; default case
       [(#%app f args ...) (tc/funapp #'f #'(args ...))]))
-  
+
   )

@@ -17,7 +17,7 @@
   (import typechecker^)
   (export tc-let^)
   
-  (define (do-check expr->type namess types form exprs body clauses)
+  (define (do-check expr->type namess types form exprs body clauses expected)
     ;; just for error reporting
     #;(define clauses (syntax-case form () [(lv cl . b) (syntax->list #'cl)]))
     ;; extend the lexical environment for checking the body
@@ -30,7 +30,9 @@
                clauses
                exprs 
                (map list->values-ty types))
-     (tc-exprs (syntax->list body))))
+     (if expected 
+         (begin (printf "doing stuff ~a~n" (syntax-object->datum body)) (begin0 (tc-exprs/check (syntax->list body) expected) (printf "stuff done!~n")))
+         (tc-exprs (syntax->list body)))))
   
   #|
 ;; this is more abstract, but sucks
@@ -54,11 +56,12 @@
   |#
   
   (define (tc/letrec-values/check namess exprs body form expected)
-    (let ([t (tc/letrec-values namess exprs body form)])
-      (check-below t expected)
-      t))
-  
+    (tc/letrec-values/internal namess exprs body form expected))
+    
   (define (tc/letrec-values namess exprs body form)
+    (tc/letrec-values/internal namess exprs body form #f))
+  
+  (define (tc/letrec-values/internal namess exprs body form expected)
     (let* ([names (map syntax->list (syntax->list namess))]
            [flat-names (apply append names)]
            [exprs (syntax->list exprs)]           
@@ -67,7 +70,7 @@
       (let loop ([names names] [exprs exprs] [flat-names flat-names] [clauses clauses])
         (cond 
           ;; after everything, check the body expressions
-          [(null? names) (tc-exprs (syntax->list body))]
+          [(null? names) (if expected (tc-exprs/check (syntax->list body) expected) (tc-exprs (syntax->list body)))]
           ;; if none of the names bound in the letrec are free vars of this rhs
           [(not (ormap (lambda (n) (member1 n flat-names bound-identifier=?)) (free-vars (car exprs))))
            ;; then check this expression separately
@@ -78,9 +81,9 @@
               (loop (cdr names) (cdr exprs) (apply append (cdr names)) (cdr clauses))))]
           [else                
            (for-each (lambda (vs) (for-each (lambda (v) (printf/log "Letrec Var: ~a~n" (syntax-e v))) vs)) names)
-           (do-check tc-expr/t names (map (lambda (l) (map get-type l)) names) form exprs body clauses)]))))
+           (do-check tc-expr/t names (map (lambda (l) (map get-type l)) names) form exprs body clauses expected)]))))
   
-  (define (tc/let-values namess exprs body form)
+  (define (tc/let-values/internal namess exprs body form expected)
     (let* (;; a list of each name clause
            [names (map syntax->list (syntax->list namess))]
            ;; all the trailing expressions - the ones actually bound to the names
@@ -91,12 +94,13 @@
            [types (map get-type/infer names inferred-types)]
            ;; the clauses for error reporting
            [clauses (syntax-case form () [(lv cl . b) (syntax->list #'cl)])])
-      (do-check (lambda (x) x) names types form inferred-types body clauses)))
+      (do-check (lambda (x) x) names types form inferred-types body clauses expected)))
   
   (define (tc/let-values/check namess exprs body form expected)
-    (let ([t (tc/let-values namess exprs body form)])
-      (check-below t expected)
-      t))
+    (tc/let-values/internal namess exprs body form expected))
+  
+  (define (tc/let-values namess exprs body form)
+    (tc/let-values/internal namess exprs body form #f))
 
   
   )

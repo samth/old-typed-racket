@@ -98,18 +98,107 @@
   (define (tc-expr/t e) (match (tc-expr e)
                           [(tc-result: t) t]))
   
+  (define (check-below tr1 expected)
+    (match (list tr1 expected)      
+      [(list (tc-result: t1 te1 ee1) t2)
+       (unless (subtype t1 t2)
+         (tc-error "Expected ~a, but got ~a" t2 t1))
+       expected]
+      [(list t1 t2)
+       (unless (subtype t1 t2)
+         (tc-error "Expected ~a, but got ~a" t2 t1))
+       expected]))
+  
+  (define (tc-expr/check form expected)
+    (parameterize ([current-orig-stx form])
+      ;(printf "form: ~a~n" (syntax-object->datum form))
+      ;; the argument must be syntax
+      (unless (syntax? form) 
+        (int-err "bad form input to tc-expr: ~a" form))
+      (let (;; a local version of ret that does the checking
+            [ret 
+             (lambda args
+               (define te (apply ret args))
+               (check-below te expected)
+               te)])
+        (kernel-syntax-case* form #f 
+          (letrec-syntaxes+values) ;; letrec-syntaxes+values is not in kernel-syntax-case literals
+          [stx
+           (syntax-property form 'typechecker:with-handlers)
+           (check-subforms/with-handlers/check form expected)]
+          [stx 
+           (syntax-property form 'typechecker:ignore-some)
+           (let ([ty (check-subforms/ignore form)])
+             (unless ty
+               (tc-error "internal error: ignore-some"))
+             (check-below ty expected))]
+          ;; data
+          [(#%datum . #f) (ret (-val #f) (list (make-False-Effect)) (list (make-False-Effect)))]
+          [(#%datum . #t) (ret (-val #t) (list (make-True-Effect)) (list (make-True-Effect)))]
+          [(quote #f) (ret (-val #f) (list (make-False-Effect)) (list (make-False-Effect)))]
+          [(quote #t) (ret (-val #t) (list (make-True-Effect)) (list (make-True-Effect)))]
+          
+          [(#%datum . val) (ret (tc-literal #'val))]
+          [(quote val)  (ret (tc-literal #'val))]
+          ;; syntax
+          [(quote-syntax datum) (ret -Syntax)]
+          ;; mutation!
+          [(set! id val)
+           (match-let* ([(tc-result: id-t) (tc-id #'id)]
+                        [(tc-result: val-t) (tc-expr #'val)])
+             (unless (subtype val-t id-t)
+               (tc-error "Mutation only allowed with compatible types:~n~a is not a subtype of ~a" val-t id-t))
+             (ret -Void))]
+          ;; top-level variable reference - occurs at top level
+          [(#%top . id) (check-below (tc-id #'id) expected)]
+          ;; weird
+          [(#%variable-reference . _)
+           (tc-error "do not use #%variable-reference")]
+          ;; identifiers
+          [x (identifier? #'x) (check-below (tc-id #'x) expected)]
+          ;; w-c-m
+          [(with-continuation-mark e1 e2 e3)
+           (begin (tc-expr/check #'e1 Univ)
+                  (tc-expr/check #'e2 Univ)
+                  (tc-expr/check #'e3 expected))]  
+          ;; application        
+          [(#%app . _) (tc/app/check form expected)]
+          ;; syntax
+          ;; for now, we ignore the rhs of macros
+          [(letrec-syntaxes+values stxs vals . body)
+           (tc-expr/check (syntax/loc form (letrec-values vals . body)) expected)]
+          ;; begin
+          [(begin e . es) (tc-exprs/check (syntax->list #'(e . es)) expected)]
+          [(begin0 e . es)
+           (begin (tc-exprs/check (syntax->list #'es) Univ)
+                  (tc-expr/check #'e expected))]          
+          ;; if
+          [(if tst body) (tc/if-onearm/check #'tst #'body expected)]
+          [(if tst thn els) (tc/if-twoarm/check #'tst #'thn #'els expected)]
+          ;; lambda
+          [(lambda formals . body)
+           (tc/lambda/check form #'(formals) #'(body) expected)]        
+          [(case-lambda [formals . body] ...)
+           (tc/lambda/check form #'(formals ...) #'(body ...) expected)]      
+          ;; let
+          [(let-values ([(name ...) expr] ...) . body)
+           (tc/let-values/check #'((name ...) ...) #'(expr ...) #'body form expected)]
+          [(letrec-values ([(name ...) expr] ...) . body)
+           (tc/letrec-values/check #'((name ...) ...) #'(expr ...) #'body form expected)]
+          ;; other
+          [_ (tc-error "cannot typecheck unknown form : ~a~n" (syntax-object->datum form))]
+          ))))
+  
   ;; type check form in the current type environment
   ;; if there is a type error in form, or if it has the wrong annotation, error
   ;; otherwise, produce the type of form
   ;; syntax[expr] -> type
   (define (tc-expr form)
-    (define ty-ann (type-annotation form))    
     ;; do the actual typechecking of form
     ;; internal-tc-expr : syntax -> Type
     (define (internal-tc-expr form)
       (kernel-syntax-case* form #f 
         (letrec-syntaxes+values) ;; letrec-syntaxes+values is not in kernel-syntax-case literals
-
         ;; 
         [stx
          (syntax-property form 'typechecker:with-handlers)
@@ -136,12 +225,12 @@
         [(quote-syntax datum) (ret -Syntax)]
         ;; w-c-m
         [(with-continuation-mark e1 e2 e3)
-         (begin (tc-expr #'e1)
-                (tc-expr #'e2)
+         (begin (tc-expr/check #'e1 Univ)
+                (tc-expr/check #'e2 Univ)
                 (tc-expr #'e3))]
         ;; lambda
         [(lambda formals . body)
-         (tc/lambda form #'(formals) #'(body))]         
+         (tc/lambda form #'(formals) #'(body))]        
         [(case-lambda [formals . body] ...)
          (tc/lambda form #'(formals ...) #'(body ...))]      
         ;; let
@@ -166,7 +255,7 @@
         ;; application        
         [(#%app . _) (tc/app form)]
         ;; if
-        [(if tst body) (tc/if-onearm #'tst #'body)]               
+        [(if tst body) (tc/if-twoarm #'tst #'body #'(#%app void))]
         [(if tst thn els) (tc/if-twoarm #'tst #'thn #'els)]                          
         
         ;; syntax
@@ -179,9 +268,6 @@
         [(begin0 e . es)
          (begin (tc-exprs (syntax->list #'es))
                 (tc-expr #'e))]
-        
-        ;; #%app values just contains an expression
-        [(#%app values e) (tc-expr #'e)]
         ;; other
         [_ (tc-error "cannot typecheck unknown form : ~a~n" (syntax-object->datum form))]))
     
@@ -191,19 +277,8 @@
       (unless (syntax? form) 
         (int-err "bad form input to tc-expr: ~a" form))
       ;; typecheck form
-      (match-let ([(and result (tc-result: result-ty result-thn-eff result-els-eff))
-                   (internal-tc-expr form)])
-        (cond 
-          ;; if we had an annotation, make sure it's appropriate for the actual type
-          ;; if it is, return the annotation
-          [(and ty-ann (subtype result-ty ty-ann)) 
-           (printf/log "Expression Type Annotation: ~a ~a~n" result-ty ty-ann)
-           (ret ty-ann)]
-          ;; if we had an annotation, but it wasn't right, error
-          [ty-ann (tc-error "expression had type ~a, but was annotated with type ~a" result-ty ty-ann)]
-          ;; otherwise, just return the result
-          [else result])))
-    )
+      (cond [(type-annotation form) => (lambda (ann) (tc-expr/check form ann))]
+            [else (internal-tc-expr form)])))
   
   ;; type-check a list of exprs, producing the type of the last one.
   ;; if the list is empty, the type is Void.
@@ -211,8 +286,14 @@
   (define (tc-exprs exprs)
     (cond [(null? exprs) (ret -Void)]
           [(null? (cdr exprs)) (tc-expr (car exprs))]
-          [else (tc-expr (car exprs))
+          [else (tc-expr/check (car exprs) Univ)
                 (tc-exprs (cdr exprs))]))
+  
+  (define (tc-exprs/check exprs expected)
+    (cond [(null? exprs) (check-below (ret -Void) expected)]
+          [(null? (cdr exprs)) (tc-expr/check (car exprs) expected)]
+          [else (tc-expr (car exprs) Univ)
+                (tc-exprs/check (cdr exprs) expected)]))
   
   (define-struct binding (name) #f)
   (define-struct (def-binding binding) (ty) #f)
@@ -337,6 +418,30 @@
              (loop #'b))]
           [_ (void)])))
     (ret (apply Un body-ty handler-tys)))
+  
+  (define (check-subforms/with-handlers/check form expected)
+    (let loop ([form form])
+      (parameterize ([current-orig-stx form])
+        (kernel-syntax-case* form #f ()
+          [stx
+           ;; if this needs to be checked
+           (syntax-property form 'typechecker:with-type)
+           ;; the form should be already ascribed the relevant type
+           (tc-expr form)]
+          [stx
+           ;; this is a hander function
+           (syntax-property form 'typechecker:exn-handler)
+           (tc-expr/check form (-> (Un) expected))]
+          [stx
+           ;; this is the body of the with-handlers
+           (syntax-property form 'typechecker:exn-body)
+           (tc-expr/check form expected)]
+          [(a . b)
+           (begin
+             (loop #'a)
+             (loop #'b))]
+          [_ (void)])))
+    expected)
   
   ;; typecheck the expansion of a with-handlers form
   ;; syntax -> type

@@ -99,6 +99,11 @@
     (if (syntax-property form 'typechecker:plambda)
         (tc/plambda form formals bodies)
         (ret (tc/mono-lambda formals bodies))))
+  
+  (define (tc/lambda/check form formals bodies expected)
+    (let ([t (tc/lambda form formals bodies)])
+      (check-below t expected)
+      t))
   ;; tc/plambda syntax syntax-list syntax-list -> Poly
   ;; formals and bodies must by syntax-lists
   (define (tc/plambda form formals bodies)
@@ -109,6 +114,14 @@
                    (tc/mono-lambda formals bodies))])
         ;(printf "plambda: ~a ~a ~a ~n" literal-tvars new-tvars ty)
         (ret (make-Poly literal-tvars ty)))))
+  
+  (define (tc/rec-lambda/check form formals body name args ret)
+    (with-lexical-env/extend
+     (syntax->list formals) args
+     (with-lexical-env/extend
+      (list name) (list (->* args ret))
+      (tc-exprs/check (syntax->list body) ret)
+      (->* args ret))))
   
   ;(trace tc/mono-lambda)
   

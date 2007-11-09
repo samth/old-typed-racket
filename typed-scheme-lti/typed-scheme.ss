@@ -137,7 +137,7 @@
                                 [ty-str (match type
                                           [(tc-result: t thn els)
                                            (format "- : ~a\n" t)]
-                                          [x (printf "~a~n" x) ""])])                    
+                                          [x (error 'internal-typechecker "bad type result: ~a" x)])])                    
                     (if (equal? -Void (tc-result-t type))
                         #'b
                         #`(let ([v b] [type 'ty-str])

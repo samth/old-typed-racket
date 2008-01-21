@@ -1,0 +1,469 @@
+% quick.tex 
+\documentclass{book} 
+\usepackage{slatex} 
+
+\author{Sam Tobin-Hochstadt}
+\title{Typed Scheme: A Brief Introduction for PLT Scheme Programmers}
+\date{\today}
+
+\begin{document} 
+\maketitle
+\setspecialsymbol{planetpkg}{\scheme|("plt" "typed-scheme.plt")|}
+\setspecialsymbol{tlang}{\scheme|(planet "typed-scheme.ss"  planetpkg)|}
+\setspecialsymbol{readerlib}{\scheme|(planet "typed-reader.ss"  planetpkg)|}
+\setkeyword{define: let: : lambda: pdefine: plambda: define-struct define-typed-struct module .. -> case-lambda pred All letrec: let*:  case-lambda: pcase-lambda: :: # #reader require}
+\setkeyword{Un define-type-alias require/typed}
+
+\newcommand{\tlang}{\scheme|tlang|}
+
+\begin{schemeregion}
+
+
+
+
+%\chapter{Introduction}
+
+Typed Scheme is a Scheme-like language, with a type system that
+supports common Scheme programming idioms.  Explicit type declarations
+are required --- that is, there is no type inference.  The language
+supports a number of features from previous work on type systems that
+make it easier to type Scheme programs, as well as a novel idea dubbed
+``occurrence typing'' for case discrimination.
+
+Typed Scheme is also designed to integrate with the rest of your PLT
+Scheme system.  It is possible to convert a single module to Typed
+Scheme, while leaving the rest of the program unchanged.  The typed
+module is protected from the untyped code base via
+automatically-synthesized contracts.
+
+Further information on Typed Scheme is available from
+{\tt http://www.ccs.neu.edu/home/samth/typed-scheme.html} .
+
+\subsection*{Installation}
+
+There is no need to specifically install Typed Scheme.  Simply running
+one of the example programs described in this manual will
+automatically download and install the necessary software.  However,
+it can also be installed from the MzScheme or DrScheme prompt with the
+following require statement:
+
+\begin{schemedisplay}
+(require (planet "info.ss" planetpkg))
+\end{schemedisplay}
+
+In order to use the Typed Scheme language level in DrScheme, DrScheme
+must be restarted after installation.
+
+\tableofcontents
+
+\chapter{Starting with Typed Scheme}
+
+If you already know PLT Scheme, or even some other Scheme, it should be
+easy to start using Typed Scheme.
+
+\section{A First Function}
+
+The following program defines the Fibonnaci function in PLT Scheme:
+
+\begin{schemedisplay}
+(module fib mzscheme
+  (define (fib n)
+    (cond [(= 0 n) 1]
+          [(= 1 n) 1]
+          [else (+ (fib (- n 1)) (fib (- n 2)))])))
+\end{schemedisplay} 
+
+This program defines the same program using Typed Scheme.
+ 
+\begin{schemedisplay}
+(module fib tlang
+  (define: (fib [n : number]) : number
+    (cond [(= 0 n) 1]
+          [(= 1 n) 1]
+          [else (+ (fib (- n 1)) (fib (- n 2)))])))
+\end{schemedisplay} 
+
+There are three differences between these programs:
+
+\begin{itemize}
+  \item {\bf The Language:} \scheme|mzscheme| has been replaced in the
+    language position by \tlang{}.
+
+  \item {\bf The Binding Form:} \scheme|define| has been replaced by
+    \scheme|define:| as the top-level definition form.
+
+  \item {\bf The Type Annotations:} Both the argument \scheme|n| and
+    the result (appearing after the arguments) have been annotated
+    with types, in this case \scheme|number|.
+\end{itemize}
+
+
+In general, these are most of the changes that have to be made to a PLT Scheme
+program to transform it into a Typed Scheme program.\footnote{Changes
+  to uses of \scheme|require| may also be necessary --- these are
+  described later.}
+
+
+
+
+\section{Adding more complexity}
+
+
+
+Other typed binding forms are also available.  For example, we could have
+rewritten our fibonacci program as follows:
+
+\begin{schemedisplay}
+(module fib tlang
+  (define: (fib [n : number]) : number
+    (let: ([base? : boolean (or (= 0 n) (= 1 n))])
+      (if base? 1
+          (+ (fib (- n 1)) (fib (- n 2))))))))
+\end{schemedisplay} 
+
+This program uses the \scheme|let:| binding form, which, like
+\scheme|define:|, allows types to be provided, as well as the
+\scheme|boolean| type.
+
+We can also define mutually-recursive functions:
+
+\begin{schemedisplay}
+(module even-odd tlang
+  (define: (my-odd? [n : number]) : boolean
+    (if (= 0 n) #f
+        (my-even? (- n 1))))
+
+  (define: (my-even? [n : number]) : boolean
+    (if (= 0 n) #t
+        (my-odd? (- n 1))))
+
+  (display (my-even? 12)))
+\end{schemedisplay} 
+
+As expected, this program prints \schemeresult|#t|.
+
+\section{Defining New Datatypes}
+
+If our program requires anything more than atomic data, we must define
+new datatypes.  In Typed Scheme, structures can be defined, similarly
+to PLT Scheme structures.  The following program defines a date
+structure and a function that formats a date as a string, using PLT
+Scheme's built-in \scheme|format| function.
+
+%% too bad date and string are taken by mzscheme
+\begin{schemedisplay}
+(module date tlang
+
+  (define-typed-struct my-date ([day : number] [month : str] [year : number]))
+  
+  (define: (format-date [d : my-date]) : str
+    (format "Today is day ~a of ~a in the year ~a" (my-date-day d) (my-date-month d) (my-date-year d)))
+  
+  (display (format-date (make-my-date 28 "November" 2006)))
+\end{schemedisplay}
+
+Here we see the new built-in type \scheme|str| as well as a definition
+of the new user-defined type \scheme|my-date|.  To define
+\scheme|my-date|, we provide all the information usually found in a
+\scheme|define-struct|, but added type annotations to the fields.
+Then we can use the functions that this declaration creates, just as
+we would have with \scheme|define-struct|.
+
+\section{Recursive Datatypes and Unions}
+
+Many data structures involve multiple variants.  In Typed Scheme, we
+represent these using {\it union types}, written \scheme|(U t1 t2 ...)|
+
+\begin{schemedisplay}
+(module tree tlang
+  (define-typed-struct leaf ([val : number]))
+  (define-typed-struct node ([left : (U node leaf)] [right : (U node leaf)]))
+  
+  (define: (tree-height [t : (U node leaf)]) : number
+    (cond [(leaf? t) 1]
+          [else (max (tree-height (node-left t))
+                     (tree-height (node-right t)))]))
+
+  (define: (tree-sum [t : (U node leaf)]) : number
+    (cond [(leaf? t) (leaf-val t)]
+          [else (+ (tree-sum (node-left t))
+                   (tree-sum (node-right t)))])))
+\end{schemedisplay}
+
+In this module, we have defined two new datatypes: \scheme|leaf| and
+\scheme|node|.  We've also used the type \scheme|(U node leaf)|,
+which represents a binary tree of numbers.  In essence, we are saying
+that the \scheme|tree-height| function accepts either a \scheme|node|
+or a \scheme|leaf| and produces a number.  
+
+In order to calculate interesting facts about trees, we have to take
+them apart and get at their contents.  But since accessors such as
+\scheme|node-left| require a \scheme|node| as input, not a
+\scheme|(U node leaf)|, we have to determine which kind of input we
+were passed.  
+
+For this purpose, we use the predicates that come with each defined
+structure.  For example, the \scheme|leaf?| predicate distinguishes
+\scheme|leaf|s from all other Typed Scheme values.  Therefore, in the
+first branch of the \scheme|cond| clause in \scheme|tree-sum|, we know
+that \scheme|t| is a \scheme|leaf|, and therefore we can get its value
+with the \scheme|leaf-val| function.
+
+In the else clauses of both functions, we know that \scheme|t| is not
+a \scheme|leaf|, and since the type of \scheme|t| was \scheme|(U node
+leaf)| by process of elimination we can determine that \scheme|t| must
+be a \scheme|node|.  Therefore, we can use accessors such as
+\scheme|node-left| and \scheme|node-right| with \scheme|t| as input.
+
+\section{Giving Names to Types}
+
+When a complex type is used repeatedly in a program, it can be helpful
+to give it a short name.  In Typed Scheme, this can be done with {\it
+  type aliases}.  For example, we could have used a type alias to
+represent our tree datatype from the previous section.
+
+\begin{schemedisplay}
+(module tree tlang
+  (define-typed-struct leaf ([val : number]))
+  (define-typed-struct node ([left : (U node leaf)] [right : (U node leaf)]))
+  
+  (define-type-alias tree (U node leaf))
+  
+  (define: (tree-height [t : tree]) : number
+    (cond [(leaf? t) 1]
+          [else (max (tree-height (node-left t))
+                     (tree-height (node-right t)))]))
+  
+  (define: (tree-sum [t : tree]) : number
+    (cond [(leaf? t) (leaf-val t)]
+          [else (+ (tree-sum (node-left t))
+                   (tree-sum (node-right t)))])))
+\end{schemedisplay}
+
+The defintion \scheme|(define-type-alias tree (U node leaf))| creates
+the type alias \scheme|tree|, which is just another name for the type
+\scheme|(U node leaf)|.  We can then use this type in subsequent
+definitions such as \scheme|tree-sum|.
+
+\chapter{Polymorphism}
+
+Virtually every Scheme program uses lists and sexpressions.  Fortunately, Typed
+Scheme can handle these as well.  A simple list processing program can be
+written like this:
+
+\begin{schemedisplay}
+(module add-list tlang
+  (define: (sum-list [l : (Listof number)]) : number
+    (cond [(null? l) 0]
+          [else (+ (car l) (sum-list (cdr l)))])))
+\end{schemedisplay}
+
+This looks similar to our earlier programs --- except for the type
+of \scheme|l|, which looks like a function application.  In fact, it's
+a use of the {\it type constructor} \scheme|Listof|, which takes
+another type as its input, here \scheme|number|.  We can use
+\scheme|Listof| to construct the type of any kind of list we might
+want.  
+
+We can define our own type constructors as well.  For example, here is
+an analog of the {\it Maybe} type constructor from Haskell:
+
+\begin{schemedisplay}
+(module maybe "typed-lang.ss"
+  (define-typed-struct Nothing ())
+  (define-typed-struct (a) Just ([v : a]))
+  
+  (define-type-alias (Maybe a) (U Nothing (Just a)))
+  
+  (define: (find [v : number] [l : (Listof number)]) : (Maybe number)
+    (cond [(null? l) (make-Nothing)]
+          [(= v (car l)) (make-Just v)]
+          [else (find v (cdr l))])))
+\end{schemedisplay}
+
+The first \scheme|define-typed-struct| defines \scheme|Nothing| to be
+a structure with no contents.  
+
+The second definition
+\begin{schemedisplay}
+(define-typed-struct (a) Just ([v : a]))
+\end{schemedisplay}
+creates a parameterized type, \scheme|Just|, which is a structure with
+one element, whose type is that of the type argument to
+\scheme|Just|.  Here the type parameters (only one, \scheme|a|, in
+this case) are written before the type name, and can be referred to in
+the types of the fields.
+
+The type alias definiton
+\begin{schemedisplay}
+  (define-type-alias (Maybe a) (U Nothing (Just a)))
+\end{schemedisplay}
+creates a parameterized alias --- \scheme|Maybe| is a potential
+container for whatever type is supplied.
+
+The \scheme|find| function takes a number \scheme|v| and list, and
+produces \scheme|(make-Just v)| when the number is found in the list,
+and \scheme|(make-Nothing)| otherwise.  Therefore, it produces a
+\scheme|(Maybe number)|, just as the annotation specified.  
+
+\chapter{More Built-In Types}
+
+Typed Scheme comes with a number of other types and type constructors,
+corresponding (mostly) to primitive types provided by PLT Scheme.
+
+\renewcommand{\i}[2]{\item #1 #2}
+
+\begin{itemize}
+\item The base types represent primitive data
+  \begin{itemize}
+    \i{\scheme|number|}{Any number}
+    \i{\scheme|str|}{A string}
+    \i{\scheme|symbol|}{A symbol}
+    \i{\scheme|boolean|}{Either \scheme|#t| or \scheme|#f|}
+    \i{\scheme|keyword|}{A PLT Scheme literal keyword}
+    \i{\scheme|top|}{Any value}
+  \end{itemize}
+\item The following constructors are parameteric in a single type argument
+  \begin{itemize}
+    \i{\scheme|(Listof t)|}{Homogenous lists of \scheme|t|}
+    \i{\scheme|(Vectorof t)|}{Homogenous vectors of \scheme|t|}
+    \i{\scheme|(Option t)|}{Either \scheme|t| or \scheme|#f|}
+%    \i{\scheme|(box-of t)|}{A singleton container of \scheme|t|}
+  \end{itemize}
+\i{\scheme|(cons s t)|}{is the pair containing \scheme|s| as the \scheme|car|
+  and \scheme|t| as the \scheme|cdr|}
+\i{\scheme|(dom ... -> rng)|}{is the type of functions from the (possibly-empty)
+  sequence \scheme|dom ...| to the \scheme|rng| type.}
+\i{\scheme|(dom ... rst .. -> rng)|}{is the type of functions from the
+  (possibly-empty) sequence \scheme|dom ...| with an optional trailing
+  sequence of \scheme|rst| to the \scheme|rng| type. Note: \scheme|..| is a
+  part of the syntax of these types.}
+\i{\scheme|(U t ...)|}{is the union of the types \scheme|t ...|}
+\i{\scheme|(case-lambda fun-ty ...)|}{is a function that behaves like all of
+  the \scheme|fun-ty|s.  The \scheme|fun-ty|s must all be function
+  types constructed with \scheme|->|.}
+\i{\scheme|(t t1 t2 ...)|}{is the instantiation of the parametric type
+  \scheme|t| at types \scheme|t1 t2 ...|}
+\i{\scheme|(pred t)|}{is a predicate for type \scheme|t|}
+\i{\scheme|(All (v ...) t)|}{is a parameterization of type \scheme|t|, with
+  type variables \scheme|v ...|}
+\i{\scheme|(values t ...)|}{is the type of a sequence of multiple values, with
+types \scheme|t ...|.  This can only appear as the return type of a
+function.}
+\i{\scheme|v|}{where \scheme|v| is a number, boolean or string, is the singleton type containing
+only that value}
+\i{\scheme|i|}{where \scheme|i| is an identifier can be a reference to a type
+name or a type variable}
+\end{itemize}
+
+Other types cannot be written by the programmer, but are used
+internally and may appear in error messages.
+
+%\scheme|n| is a name, \scheme|t| is a type.
+
+\begin{itemize}
+        \i{\scheme|#<struct:n (t ...)>|}{is the type of structures named
+\scheme|n| with field types \scheme|t|.  There may be multiple such
+types with the same printed representation.}
+        \i{\scheme|(mu n t)|}{is a recursive type where \scheme|n| is bound to the
+recursive type in the body \scheme|t|}
+        \i{\scheme|<n>|}{is the printed representation of a reference to the
+type variable \scheme|n|}
+\end{itemize}
+
+
+\chapter{Special Form Reference}
+
+Typed Scheme provides a variety of special forms above and beyond
+those in PLT Scheme.  They are used for annotating variables with types,
+creating new types, and annotating expressions.
+
+\section{Binding Forms}
+
+\scheme|loop|, \scheme|f|, \scheme|a|, and \scheme|v| are names, \scheme|t| is a type.
+ \scheme|e| and \scheme|body| are expressions.
+
+\begin{itemize}
+  \i{\scheme|(define: (f [v : t] ...) : t body)|}{}
+  \i{\scheme|(define: v : t e)|}{}
+  \i{\scheme|(pdefine: (a ...) (f [v : t] ...) : t body)|}{}
+  \i{\scheme|(let: ([v : t e] ...) body)|}{}
+  \i{\scheme|(let: loop : t0 ([v : t e] ...) body)|}{where \scheme|t0| is the type of the
+  result of \scheme|loop| (and thus the result of the entire expression).}
+  \i{\scheme|(letrec: ([v : t e] ...) body|}{}
+  \i{\scheme|(let*: ([v : t e] ...) body)|}{}
+  \i{\scheme|(lambda: ([v : t] ...) body)|}{}
+  \i{\scheme|(lambda: ([v : t] ... . [v : t]) body)|}{}
+  \i{\scheme|(plambda: (a ...) ([v : t] ...) body)|}{}
+  \i{\scheme|(plambda: (a ...) ([v : t] ... . [v : t]) body)|}{}
+  \i{\scheme|(case-lambda: [formals body] ...)|}{where \scheme|formals| is like
+  the second element of a \scheme|lambda:|}
+  \i{\scheme|(pcase-lambda: (a ...) [formals body] ...)|}{where \scheme|formals| is like
+  the third element of a \scheme|plambda:|}
+\end{itemize}
+
+\section{Structure Defintions}
+
+\scheme|name|, \scheme|parent|, \scheme|f|, and \scheme|v| are names,
+\scheme|t| is a type.  \scheme|parent| must name a structure type.
+
+\begin{itemize}
+  \i{\scheme|(define-typed-struct name ([f : t] ...))|}{}
+  \i{\scheme|(define-typed-struct (name parent) ([f : t] ...))|}{}
+  \i{\scheme|(define-typed-struct (v ...) name ([f : t] ...))|}{}
+  \i{\scheme|(define-typed-struct (v ...) (name parent) ([f : t] ...))|}{}
+\end{itemize}
+
+\section{Type Aliases}
+
+\scheme|name| and \scheme|v| are names, \scheme|t| is a type.
+
+\begin{itemize}
+  \i{\scheme|(define-type-alias name t)|}{}
+  \i{\scheme|(define-type-alias (name v ...) t)|}{}
+\end{itemize}
+
+\section{Type Annotation}
+
+\scheme|v| is a variable name, \scheme|e| is an expression, \scheme|t| is a type.
+
+These annotations require the use of the following declaration before
+the beginning of the module:
+
+\begin{schemedisplay}
+#reader readerlib
+\end{schemedisplay}
+
+This will not affect the reading or parsing of any other syntax.
+
+\begin{itemize}
+  \i{\scheme|#{v : t}|}{This is legal only for binding occurences of \scheme|v|}
+  \i{\scheme|#{e :: t}|}{This is legal only in expression contexts}
+\end{itemize}
+
+\section{Require}
+
+\scheme|v| is a variable name, \scheme|t| is a type, and \scheme|m| is
+a require-spec.
+
+\begin{itemize}
+        \i{\scheme|(require/typed v t m)|}{}
+\end{itemize}
+
+\end{schemeregion}
+
+\chapter{The \textrm{Typed Scheme} Language Level}
+
+In addition to providing a language to be used with PLT Scheme
+modules, Typed Scheme is also available as a language selection within
+DrScheme.  To enable this language, simply choose it in the ``Choose
+Language'' dialog found in the ``Language'' menu of DrScheme.  Typed
+Scheme programs can then be entered in the definitions window, and
+executed with the run button.  
+
+Unlike some other languages available in DrScheme, the Typed Scheme
+language level does not simulate a top-level read-eval-print loop.
+Therefore, only one definition of a variable is allowed and uses of
+unbound variables result in errors.
+
+\end{document} 

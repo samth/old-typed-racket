@@ -1,0 +1,28 @@
+TypedScheme: alpha release
+
+The TypedScheme programming language, a dialect of PLT Scheme
+with static type checking, is now available from PLaneT. The
+language is explicitly typed and supports some polymorphism. Its
+type system is designed to support the common Scheme programming
+style, as used in The Little LISPer/Schemer or How to Design
+Programs.
+
+This alpha release consists of a functional core language with
+typed definitions of all kinds, including variables, functions
+and structures as well as some polymorphism.
+
+We expect the language to include imperative constructs in the
+near future.
+
+Web page: http://www.ccs.neu.edu/~samth/typed-scheme.html
+Documentation: http://www.ccs.neu.edu/~samth/typed-scheme/
+PLaneT link: http://planet.plt-scheme.org/#typed-scheme.plt
+Installation:
+   (require (planet "info.ss" ("plt" "typed-scheme.plt")))
+   or (from a command line)
+   > planet -i plt typed-scheme.plt 1 0
+Feedback: samth@ccs.neu.edu
+
+All feedback, concerning the programming language, its
+documentation, and its implementation is welcome.
+

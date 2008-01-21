@@ -1,0 +1,7 @@
+(require (lib "errortrace.ss" "errortrace"))
+(profile-paths-enabled #f)
+(profiling-enabled #t)
+(load "optimize/test.ss")
+(require mzscheme)
+(output-profile-results #t #t)
+

@@ -44,7 +44,7 @@ This file defines three sorts of primitives. All of them are provided into any m
          (lib "etc.ss")
          (except-in (lib "contract.ss") ->)
          (only-in (lib "contract.ss") [-> c->])
-         "../CSU660/datatype.ss"
+         (lib "datatype.ss" "CSU660")
          (lib "struct.ss")
          "base-env.ss")
 

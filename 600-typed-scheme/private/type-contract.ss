@@ -12,7 +12,7 @@
    "tc-utils.ss"
    "resolve-type.ss"
    "type-utils.ss"
-   "../CSU660/datatype.ss")
+   (lib "datatype.ss" "CSU660"))
   
   (require
    (lib "plt-match.ss")

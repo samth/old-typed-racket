@@ -1,7 +1,7 @@
 #lang scribble/doc
 
 @begin[(require (lib "manual.ss" "scribble"))
-       (require (for-label (except-in "../typed-scheme.ss" define define-struct)
+       (require (for-label (except-in "../lang/main.ss" define)
 			   (only-in scheme/base define define-struct)))]
 
 @begin[

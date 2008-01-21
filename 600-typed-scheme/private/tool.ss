@@ -17,7 +17,8 @@
 		    (drscheme:language:simple-module-based-language->module-based-language-mixin 
 		     drscheme:language:simple-module-based-language%)))
       
-      (define planet-module '(planet "typed-scheme.ss" ("plt" "typed-scheme.plt" 2)))
+      (define planet-module '(planet "typed-scheme.ss" ("plt" "typed-scheme.plt" 3)))
+      (define modspec 'typed-scheme)
 
       (define (typed-scheme-language% cl%)
 	(class* cl% (drscheme:language:simple-module-based-language<%>)

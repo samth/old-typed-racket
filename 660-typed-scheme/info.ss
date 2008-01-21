@@ -4,8 +4,8 @@
   (define html-docs (list "doc"))
   (define doc.txt "doc.txt")
  
-  (define tools (list "private/tool.ss"))
-  (define tool-names (list "Typed Scheme"))
+  (define tools (list #;"private/tool.ss"))
+  (define tool-names (list #;"Typed Scheme"))
   (define compile-omit-files (list "private/660-env.ss" "coverage.ss" "typed-scheme-660.scm" "660-lang.ss"))
   
   (define categories (list 'devtools 'metaprogramming))

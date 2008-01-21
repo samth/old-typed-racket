@@ -33,14 +33,7 @@
 (provide-tnames)
 (provide-extra-tnames)
 
-(provide (except-out (all-from-out scheme/base) 
-                     eval
-                     with-handlers
-                     #%module-begin
-                     #%top-interaction
-                     #%app
-                     lambda
-                     require))
+
 (provide (rename-out [module-begin #%module-begin]
                      [with-handlers: with-handlers]
                      [top-interaction #%top-interaction]

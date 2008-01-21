@@ -12,9 +12,7 @@
   (define conss cons)
   
   (define fst car)
-  (define snd cdr)
-  
-  (define cons? pair?)
+  (define snd cdr)  
   
   (define (assert v)
     (unless v

@@ -1,9 +1,9 @@
 #lang scheme/base
 
-(require (for-template (only-in (lib "list.ss") foldl)
+(require (for-template (only-in (lib "list.ss") foldl cons?)
                        scheme/base
-                       (prefix-in 660: (file "../optimize/csu660.ss"))
-                       (file "../optimize/utils.ss")
+                       (prefix-in 660: CSU660/csu660)
+                       CSU660/utils
                        '#%paramz
                        scheme/promise
                        #;'#%more-scheme
@@ -16,9 +16,9 @@
  "extra-procs.ss"
  scheme/promise
  (except-in "type-rep.ss" make-arr)
- (only-in (lib "list.ss") foldl)
- (only-in (file "../optimize/utils.ss") *cons *list? string->sexpr)
- (only-in (file "../optimize/csu660.ss") first second third fourth fifth sixth rest)
+ (only-in (lib "list.ss") foldl cons?)
+ (only-in CSU660/utils *cons *list? string->sexpr test-e test-1 test-2 test-postprocess)
+ (only-in CSU660/csu660 first second third fourth fifth sixth rest)
  "type-effect-convenience.ss"
  (only-in "type-effect-convenience.ss" [make-arr* make-arr])
  "union.ss"
@@ -51,6 +51,13 @@
   (let ([make-lst make-Listof]
         [make-lst/elements -pair])
     (make-env
+     
+     ;; 660 test code
+     [test-e (-> Univ Univ Univ Univ)]
+     [test-1 (-> Univ Univ Univ)]
+     [test-2 (-> Univ Univ Univ Univ Univ)]
+     [test-postprocess (-Param (-> Univ Univ) (-> Univ Univ))]
+     ;; other 660
      
      [string->sexpr (-> -String (-mu x (Un Sym -String N B (-lst x))))]
      
@@ -502,7 +509,8 @@
   [PRegexp -PRegexp]
   [Char -Char]
   [Option (-poly (a) (-opt a))]
-  #;[Sexp -Sexp]
+  [Sexp (-mu x (Un Sym -String N B (-lst x)))]
+  [Sexpr (-mu x (Un Sym -String N B (-lst x)))]
   [List (-lst Univ)]
   [Listof -Listof]
   [Namespace -Namespace]

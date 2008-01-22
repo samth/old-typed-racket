@@ -154,16 +154,20 @@
 (define (tc/lambda/check form formals bodies expected)
   (tc/lambda/internal form formals bodies expected))
 
-;; tc/plambda syntax syntax-list syntax-list -> Poly
+;; tc/plambda syntax syntax-list syntax-list type -> Poly
 ;; formals and bodies must by syntax-lists
 (define (tc/plambda form formals bodies expected)
-  (with-syntax ([tvars (syntax-property form 'typechecker:plambda)])
-    (let* ([literal-tvars (map syntax-e (syntax->list #'tvars))]
-           [new-tvars (map make-F literal-tvars)]
-           [ty (parameterize ([current-tvars (extend-env literal-tvars new-tvars (current-tvars))])
-                 (tc/mono-lambda formals bodies #f))])
-      ;(printf "plambda: ~a ~a ~a ~n" literal-tvars new-tvars ty)
-      (ret (make-Poly literal-tvars ty)))))
+  (match expected
+    [(Poly: _ (and expected* (Function: _)))
+     (with-syntax ([tvars (syntax-property form 'typechecker:plambda)])
+       (let* ([literal-tvars (map syntax-e (syntax->list #'tvars))]
+              [new-tvars (map make-F literal-tvars)]
+              [ty (parameterize ([current-tvars (extend-env literal-tvars new-tvars (current-tvars))])
+                    (tc/mono-lambda formals bodies expected*))])
+         ;(printf "plambda: ~a ~a ~a ~n" literal-tvars new-tvars ty)
+         (ret (make-Poly literal-tvars ty))))]
+    [_ (tc-error "Expected a value of type ~a, but got a polymorphic function." expected)]))
+    
 
 ;; form : a syntax object for error reporting
 ;; formals : the formal arguments to the loop

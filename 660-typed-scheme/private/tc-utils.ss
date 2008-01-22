@@ -16,7 +16,7 @@
           [else #f]))
   
   ;; do we print the fully-expanded syntax in error messages?
-  (define print-syntax? (make-parameter #t))
+  (define print-syntax? (make-parameter #f))
   
   
   (define check-unreachable-code? (make-parameter #f))
@@ -32,6 +32,7 @@
          cur-stx]
         [(and (not (syntax-source cur-stx)) (find-origin cur-stx))]
         [else (datum->syntax-object cur-stx (syntax-e (or (find-origin cur-stx) #'..)) cur-stx cur-stx)]))
+    (printf "Aliases: ~a~n" ((current-type-names)))
     (raise-syntax-error 'typecheck (apply format msg rest) new-stx new-stx))
   
   ;; produce a type error, given a particular syntax

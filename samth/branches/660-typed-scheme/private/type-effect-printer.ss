@@ -7,7 +7,7 @@
   ;; FIXME - currently broken
   (define print-poly-types? #f)
   ;; do we use simple type aliases in printing
-  (define print-aliases #f)    
+  (define print-aliases #t)
 
   ;; does t have a type name associated with it currently?
   ;; has-name : Type -> Maybe[Symbol]
@@ -87,7 +87,7 @@
                         [else (fp "~a" v)])]
       [(Vector: e) (fp "(Vectorof ~a)" e)]
       [(Box: e) (fp "(Box ~a)" e)]
-      [(Union: elems) (fp "~a" (cons 'Un elems))]
+      [(Union: elems) (fp "~a" (cons 'U elems))]
       [(Pair: l r) (fp "(Pair ~a ~a)" l r)]
       [(F: nm) (fp "<~a>" nm)]      
       [(Values: (list v ...)) (fp "~a" (cons 'values v))]
@@ -98,7 +98,7 @@
       [(Hashtable: k v) (fp "(HashTable ~a ~a)" k v)]
       #;
       [(Poly-unsafe: n b) (fp "(unsafe-poly ~a ~a ~a)" (Type-seq c) n b)]
-      [(Poly: names body) 
+      [(Poly-names: names body) 
        #;(fprintf (current-error-port) "POLY SEQ: ~a~n" (Type-seq body))
        (fp "(All ~a ~a)" names body)]
       #;

@@ -504,7 +504,6 @@
   [Any Univ]
   [Port -Port]
   [Path -Path]
-  [num-exp -NE]
   [Regexp -Regexp]
   [PRegexp -PRegexp]
   [Char -Char]
@@ -524,12 +523,7 @@
   [Pair (-poly (a b) (-pair a b))]
   [Box (-poly (a) (make-Box a))]
   #;[Parameter -Param]
-  ;; legacy abbreviations
-  [top Univ]
-  [str -String]
-  [number N]
-  [boolean B]
-  [symbol Sym]
+  ;; legacy abbreviations  
   [list-of -Listof]
   )
 

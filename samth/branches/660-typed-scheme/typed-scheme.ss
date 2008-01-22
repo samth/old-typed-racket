@@ -13,6 +13,7 @@
           "private/provide-handling.ss"
           "private/type-environments.ss" "private/tc-utils.ss"
           "private/type-env.ss" "private/type-name-env.ss"
+          "private/type-alias-env.ss"
           "private/utils.ss"
           "private/internal-forms.ss"
           "private/init-envs.ss"
@@ -65,8 +66,12 @@
                           ;; this parameter is just for printing types
                           ;; this is a parameter to avoid dependency issues
                           [current-type-names
-                           (lambda () (type-name-env-map (lambda (id ty)
-                                                           (cons (syntax-e id) ty))))]
+                           (lambda () 
+                             (append 
+                              (type-name-env-map (lambda (id ty)
+                                                   (cons (syntax-e id) ty)))
+                              (type-alias-env-map (lambda (id ty)
+                                                    (cons (syntax-e id) ty)))))]
                           ;; reinitialize seen type variables
                           [type-name-references null])
              (do-time "Initialized Envs")
@@ -104,8 +109,12 @@
                       ;; this parameter is just for printing types
                       ;; this is a parameter to avoid dependency issues
                       [current-type-names
-                       (lambda () (type-name-env-map (lambda (id ty)
-                                                       (cons (syntax-e id) ty))))])       
+                       (lambda () 
+                         (append 
+                          (type-name-env-map (lambda (id ty)
+                                               (cons (syntax-e id) ty)))
+                          (type-alias-env-map (lambda (id ty)
+                                                (cons (syntax-e id) ty)))))])       
          ;(do-time "Initialized Envs")
          (let* (;; local-expand the module
                 [body2 (local-expand #'(#%top-interaction . form) 'top-level null)]

@@ -11,8 +11,7 @@
    "internal-forms.ss"
    "tc-utils.ss"
    "resolve-type.ss"
-   "type-utils.ss"
-   (lib "datatype.ss" "CSU660"))
+   "type-utils.ss")
   
   (require
    (lib "plt-match.ss")
@@ -36,7 +35,7 @@
           [(Univ:) #'any/c]
           ;; we special-case lists:
           [(Mu: var (Union: (list (Value: '()) (Pair: elem-ty (F: var)))))
-           #`(listof-unsafe #,(t->c elem-ty))]
+           #`(listof #,(t->c elem-ty))]
           [(Base: sym)
            (case sym
              [(Number) #'number?]

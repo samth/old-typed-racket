@@ -23,8 +23,7 @@ This file defines three sorts of primitives. All of them are provided into any m
 |#
 
 
-(provide (all-defined-out)
-         define-type cases)
+(provide (all-defined-out))
 
 (require (for-syntax 
           scheme/base
@@ -44,7 +43,6 @@ This file defines three sorts of primitives. All of them are provided into any m
          (lib "etc.ss")
          (except-in (lib "contract.ss") ->)
          (only-in (lib "contract.ss") [-> c->])
-         (lib "datatype.ss" "CSU660")
          (lib "struct.ss")
          "base-env.ss")
 

@@ -29,7 +29,7 @@ module is protected from the untyped code base via
 automatically-synthesized contracts.
 
 Further information on Typed Scheme is available from
-@link["http://www.ccs.neu.edu/home/samth/typed-scheme.html"]{the homepage}.
+@link["http://www.ccs.neu.edu/home/samth/typed-scheme"]{the homepage}.
 
 @subsubsub*section[#:tag "install"]{Installation}
 

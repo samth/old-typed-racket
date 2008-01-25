@@ -17,6 +17,7 @@
  scheme/promise
  (except-in "type-rep.ss" make-arr)
  (only-in (lib "list.ss") foldl cons?)
+ (only-in scheme sqr)
  (only-in CSU660/utils *cons *list? string->sexpr test-e test-1 test-2 test-postprocess)
  (only-in CSU660/csu660 first second third fourth fifth sixth rest)
  "type-effect-convenience.ss"
@@ -353,6 +354,7 @@
      [seconds->date (N . -> . (make-Struct 'date #f (list N N N N N N N N B N) #f))]
      [current-seconds (-> N)]
      [sqrt (-> N N)]
+     [sqr (-> N N)]
      [path->string (-> -Path -String)]       
      
      [link-exists? (-> -Pathlike B)]

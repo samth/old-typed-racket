@@ -158,7 +158,7 @@
 ;; formals and bodies must by syntax-lists
 (define (tc/plambda form formals bodies expected)
   (match expected
-    [(Poly: _ (and expected* (Function: _)))
+    [(Poly-names: _ (and expected* (Function: _)))
      (with-syntax ([tvars (syntax-property form 'typechecker:plambda)])
        (let* ([literal-tvars (map syntax-e (syntax->list #'tvars))]
               [new-tvars (map make-F literal-tvars)]

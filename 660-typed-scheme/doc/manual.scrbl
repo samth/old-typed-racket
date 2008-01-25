@@ -1,17 +1,19 @@
 #lang scribble/doc
 
-@begin[(require (lib "manual.ss" "scribble"))
-       (require (for-label (except-in "../lang/main.ss" define)
-			   (only-in scheme/base define define-struct)))]
+
+@begin[(require scribble/manual)
+       (require (for-label scheme/base))]
 
 @begin[
-(define tlang @scheme[(planet "typed-scheme.ss" ("plt" "typed-scheme.plt" 2))])
-(define readerlib @scheme[(planet "typed-reader.ss" ("plt" "typed-scheme.plt" 2))])
+(define tlang @scheme[(planet "typed-scheme.ss" ("plt" "typed-scheme.plt" 3))])
+(define readerlib @scheme[(planet "typed-reader.ss" ("plt" "typed-scheme.plt" 3))])
 
 (define (item* header . args) (apply item @bold[header]{: } args))
 ]
 
 @title[#:tag "typed-scheme"]{Typed Scheme}
+
+@(defmodulelang typed-scheme)
 
 Typed Scheme is a Scheme-like language, with a type system that
 supports common Scheme programming idioms.  Explicit type declarations

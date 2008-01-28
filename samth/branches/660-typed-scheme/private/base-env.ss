@@ -2,7 +2,6 @@
 
 (require (for-template (only-in (lib "list.ss") foldl cons?)
                        scheme/base
-                       (prefix-in 660: CSU660/csu660)
                        CSU660/utils
                        '#%paramz
                        scheme/promise
@@ -18,8 +17,8 @@
  (except-in "type-rep.ss" make-arr)
  (only-in (lib "list.ss") foldl cons?)
  (only-in scheme sqr)
- (only-in CSU660/utils *cons *list? string->sexpr test-e test-1 test-2 test-postprocess)
- (only-in CSU660/csu660 first second third fourth fifth sixth rest)
+ (only-in CSU660/utils *cons *list? test-e test-1 test-2 test-postprocess)
+ (only-in CSU660/csu660 first second third fourth fifth sixth rest string->sexpr)
  "type-effect-convenience.ss"
  (only-in "type-effect-convenience.ss" [make-arr* make-arr])
  "union.ss"

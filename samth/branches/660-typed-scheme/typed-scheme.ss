@@ -134,10 +134,13 @@
              ;; reconstruct the module with the extra code
              [_ (with-syntax ([b body2]
                               [ty-str (match type
+                                        [(tc-result: (? (lambda (e) (equal? e -Void))) thn els)
+                                         #f]
                                         [(tc-result: t thn els)
                                          (format "- : ~a\n" t)]
+                                        [(? void?) #f]
                                         [x (error 'internal-typechecker "bad type result: ~a" x)])])                    
-                  (if (equal? -Void (tc-result-t type))
+                  (if (not (syntax-e #'ty-str))
                       #'b
                       #`(let ([v b] [type 'ty-str])
                           (begin0 

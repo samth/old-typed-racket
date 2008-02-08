@@ -131,6 +131,12 @@ This file defines three sorts of primitives. All of them are provided into any m
      #;#'(let: ([id : ty arg]) id)
      (syntax-property #'arg 'type-ascription #'ty)]))
 
+(define-syntax (: stx)
+  (syntax-case stx ()
+    [(_ id ty)
+     (identifier? #'id)
+     #'(#%plain-app void (quote-syntax (:-internal id ty)))]))
+
 (define-syntax (inst stx)
   (syntax-case stx (:)
     [(_ arg : tys ...)
@@ -210,6 +216,8 @@ This file defines three sorts of primitives. All of them are provided into any m
      (label #'(var ...) #'(ty ...))]
     [([var : ty] ... . [rest : rest-ty])
      (append (label #'(var ...) #'(ty ...)) (label-one #'rest #'rest-ty))]))       
+
+(define-syntax-rule (λ: . args) (lambda: . args))
 
 (define-syntax (lambda: stx)
   (syntax-case stx (:)

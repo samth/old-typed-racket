@@ -36,7 +36,7 @@
   (find-mutated-vars form)
   (parameterize ([current-orig-stx form])
     (kernel-syntax-case* form #f (define-type-alias-internal define-typed-struct-internal define-type-internal 
-                                   define-typed-struct/exec-internal
+                                   define-typed-struct/exec-internal :-internal assert-predicate-internal
                                    require/typed-internal : void)
       ;; forms that are handled in other ways
       [stx 
@@ -69,15 +69,23 @@
       [(#%plain-app void (quote-syntax (assert-predicate-internal ty pred)))
        (register-type #'pred (make-pred-ty (parse-type #'ty)))]
       
+      ;; top-level type annotation
+      [(#%plain-app void (quote-syntax (:-internal id ty)))
+       (identifier? #'id)
+       (register-type #'id (parse-type #'ty))]
+      
       ;; values definitions
       [(define-values (var ...) expr)
        (let* ([vars (syntax->list #'(var ...))])
          (cond
            ;; if all the variables have types, we stick them into the environment
-           [(andmap (lambda (s) (syntax-property s 'type-label)) (syntax->list #'(var ...)))            
+           [(andmap (lambda (s) (syntax-property s 'type-label)) vars)            
             (let ([ts (map get-type vars)])
               (for-each register-type vars ts)
               (map make-def-binding ts vars))]
+           ;; if this already had an annotation, we just construct the binding reps
+           [(andmap (lambda (s) (lookup-type s (lambda () #f))) vars)
+            (map (lambda (s) (make-def-binding s (lookup-type s))) vars)]
            ;; special case to infer types for top level defines - should handle the multiple values case here
            [(and (= 1 (length vars)) 
                  (with-handlers ([exn:fail? (lambda _ #f)]) (tc-expr #'expr)))
@@ -86,7 +94,7 @@
                   (register-type (car vars) t)
                   (list (car vars) t)])]
            [else
-            (tc-error "Untyped definition")]))]
+            (tc-error "Untyped definition : ~a" (map syntax-e vars))]))]
       
       ;; to handle the top-level, we have to recur into begins
       [(begin . rest)

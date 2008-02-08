@@ -83,7 +83,8 @@
                (and t/f (set-box! flag #t))
                (loop (cdr effs))]
               ;; restrict v to have a type that's a subtype of t
-              [(Restrict-Effect: t v) (check-rest restrict t v)]
+              [(Restrict-Effect: t v) 
+               (check-rest restrict t v)]
               ;; remove t from the type of v
               [(Remove-Effect: t v) (check-rest remove t v)]
                ;; just replace the type of v with (-val #f)

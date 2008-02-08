@@ -2,7 +2,7 @@
 
 (require "type-rep.ss" "unify.ss" "union.ss" "infer.ss" "subtype.ss"
          "type-utils.ss" "resolve-type.ss"
-         mzlib/plt-match)
+         mzlib/plt-match mzlib/trace)
 
 (provide restrict (rename-out [*remove remove]) overlap)
 
@@ -25,11 +25,21 @@
     [(list (Base: s1) (Base: s2)) (eq? s1 s2)]
     [(list (Base: _) (Value: _)) (subtype t2 t1)] ;; conservative
     [(list (Value: _) (Base: _)) (subtype t1 t2)] ;; conservative
+    [(list (Syntax: t) (Syntax: t*))
+     (overlap t t*)]
+    [(or (list (Syntax: _) _)
+         (list _ (Syntax: _)))
+     #f]    
     [(list (Base: _) _) #f]
     [(list _ (Base: _)) #f]
-    #;[]
-    [(list (Value: '()) (Pair: _ _)) #f]
-    [(list (Pair: _ _) (Value: '())) #f]
+    [(list (Value: (? pair? v)) (Pair: _ _)) #t]
+    [(list (Pair: _ _) (Value: (? pair? v))) #t]
+    [(list (Pair: a b) (Pair: a* b*))
+     (and (overlap a a*)
+          (overlap b b*))]
+    [(or (list (Pair: _ _) _)
+         (list _ (Pair: _ _)))
+     #f]
     [else #t]))
 
 ;; this is *definitely* not yet correct
@@ -40,23 +50,27 @@
   ;; we don't use union map directly, since that might produce too many elements
   (define (union-map f l)
     (match l
-      [(Union: es) (apply Un (map f es))]))
-  (cond [(subtype t1 t2) t1] ;; already a subtype          
-        [(match t2
-           [(Poly: vars t)
-            (let ([subst (infer t t1 vars)])
-              (and subst (restrict t1 (subst-all subst t1))))]
-           [_ #f])]           
-        [(Union? t1) (union-map (lambda (e) (restrict e t2)) t1)]
-        [(Mu? t1)
-         (restrict (unfold t1) t2)]
-        [(Mu? t2) (restrict t1 (unfold t2))]
-        [(subtype t2 t1) t2] ;; we don't actually want this - want something that's a part of t1
-        [(not (overlap t1 t2)) (Un)] ;; there's no overlap, so the restriction is empty
-        [else t2] ;; t2 and t1 have a complex relationship, so we punt
-        ))
-#;
-(trace restrict)
+      [(Union: es) 
+       (let ([l (map f es)])
+         ;(printf "l is ~a~n" l)
+         (apply Un l))]))
+  (cond
+    [(subtype t1 t2) t1] ;; already a subtype          
+    [(match t2
+       [(Poly: vars t)
+        (let ([subst (infer t t1 vars)])
+          (and subst (restrict t1 (subst-all subst t1))))]
+       [_ #f])]           
+    [(Union? t1) (union-map (lambda (e) (restrict e t2)) t1)]
+    [(Mu? t1)
+     (restrict (unfold t1) t2)]
+    [(Mu? t2) (restrict t1 (unfold t2))]
+    [(subtype t2 t1) t2] ;; we don't actually want this - want something that's a part of t1
+    [(not (overlap t1 t2)) (Un)] ;; there's no overlap, so the restriction is empty
+    [else t2] ;; t2 and t1 have a complex relationship, so we punt
+    ))
+
+;(trace restrict)
 
 ;; also not yet correct
 ;; produces old without the contents of rem

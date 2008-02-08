@@ -128,7 +128,7 @@
         [(quote #t) (ret (-val #t) (list (make-True-Effect)) (list (make-True-Effect)))]
         [(quote val)  (ret (tc-literal #'val))]
         ;; syntax
-        [(quote-syntax datum) (ret -Syntax)]
+        [(quote-syntax datum) (ret Any-Syntax)]
         ;; mutation!
         [(set! id val)
          (match-let* ([(tc-result: id-t) (tc-id #'id)]
@@ -208,7 +208,7 @@
       
       [(quote val)  (ret (tc-literal #'val))]
       ;; syntax
-      [(quote-syntax datum) (ret -Syntax)]
+      [(quote-syntax datum) (ret Any-Syntax)]
       ;; w-c-m
       [(with-continuation-mark e1 e2 e3)
        (begin (tc-expr/check #'e1 Univ)

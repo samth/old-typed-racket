@@ -66,6 +66,7 @@
       [(list 'fail t) t]
       [(list t 'fail) t]
       [(list (list sf s) (list tf t))
+       ;(printf "flags : ~a ~a~n" sf tf)
        (cond 
          [(and sf tf (type-equal? s t)) (list (if (eq? sf tf) sf 'both) s)] ;; equal is fine
          [(memq 'both (list sf tf)) (fail! s t)] ;; not equal, needed to be
@@ -74,8 +75,7 @@
           (let ([flag (or sf tf flag)])
             ;(printf "flag is ~a~n" flag)
             (cond 
-              [(and (eq? 'co flag) (subtype s t)) (list 'co t)]
-              [(and (eq? 'co flag) (subtype t s)) (list 'co s)]
+              [(eq? 'co flag) (list 'co (Un s t))]
               [(and (eq? 'contra flag) (subtype s t)) (list 'contra s)]
               [(and (eq? 'contra flag) (subtype t s)) (list 'contra t)]
               [else (fail! s t)]))])]))
@@ -172,7 +172,7 @@
            (let ([cur (table:lookup v mapping)])
              (match cur
                ;; we haven't yet seen this variable
-               ['fail (table:insert v (list #f t) mapping)]
+               ['fail (table:insert v (list flag t) mapping)]
                ;; we are ignoring this variable, but they weren't the same
                [#f (fail!)] 
                ;; this variable has already been unified
@@ -226,7 +226,9 @@
            (infer/int/list (list s1 s2) (list t1 t2) mapping flag)]
           ;; ht just recur
           [(list (Hashtable: s1 s2) (Hashtable: t1 t2))
-           (infer/int/list (list s1 s2) (list t1 t2) mapping flag)]
+           (infer/int/list (list s1 s2) (list t1 t2) mapping 'both)]
+          [(list (Syntax: s1) (Syntax: s2))
+           (infer/int s1 s2 mapping flag)]
           ;; structs just recur
           [(list (Struct: nm p flds proc) (Struct: nm p flds* proc*))
            (cond [(and proc proc*)
@@ -296,6 +298,9 @@
                 (infer/int t (make-Function (list fty)) mapping flag)))
              ftys)
             (fail!))]
+          ;; if t is a union, all of the elements have to match
+          [(list s (Union: e1))
+           (infer/int/list (map (lambda (_) s) e1) e1 mapping flag)]
           ;; if s is a union, we can just try to find one of its elements that works
           [(list (Union: e1) t) 
            (or 

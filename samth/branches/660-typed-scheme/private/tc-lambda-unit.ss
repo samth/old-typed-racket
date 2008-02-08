@@ -40,6 +40,8 @@
     [(args* ...)    
      (if (ormap (lambda (e) (not (type-annotation e))) (syntax->list #'(args* ...)))
          (let* ([arg-list (syntax->list #'(args* ...))])
+           (unless (= (length arg-list) (length arg-tys))
+             (tc-error "Expected function with ~a arguments, but got function with ~a arguments" (length arg-tys) (length arg-list)))
            (for-each (lambda (a) (printf/log "Lambda Var: ~a~n" (syntax-e a))) arg-list)
            (with-lexical-env/extend 
             arg-list arg-tys

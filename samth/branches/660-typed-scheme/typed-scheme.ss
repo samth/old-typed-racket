@@ -27,7 +27,7 @@
 
 (provide 
  ;; provides syntax such as define: and define-typed-struct
- (all-from-out "private/prims.ss") 
+ (all-from-out "private/prims.ss")
  ;; provides some pointless procedures - should be removed
  (all-from-out "private/extra-procs.ss"))
 

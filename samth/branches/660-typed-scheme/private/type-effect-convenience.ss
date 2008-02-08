@@ -88,7 +88,7 @@
   (define -String (make-Base 'String))
   (define -Keyword (make-Base 'Keyword))
   (define -Char (make-Base 'Char))
-  (define -Syntax (make-Base 'Syntax))
+  (define -Syntax make-Syntax)
   (define -Prompt-Tag (make-Base 'Prompt-Tag))
   (define -Cont-Mark-Set (make-Base 'Continuation-Mark-Set))
   (define -Path (make-Base 'Path))
@@ -167,6 +167,20 @@
   (define -Pathlike* (*Un (-val 'up) (-val 'same) -Path -String))
   (define -Pattern (*Un -String -Bytes -Regexp -Byte-Regexp -PRegexp -Byte-PRegexp))
   (define -Byte N)
+  
+  (define Any-Syntax 
+    (-mu x
+         (-Syntax (*Un 
+                       (-lst x)                       
+                       (-mu y (*Un x (-pair x y)))
+                       (make-Vector x)
+                       (make-Box x)
+                       N
+                       B
+                       -String
+                       Sym))))
+  
+  (define Ident (-Syntax Sym))
   
   ;; DO NOT USE if t contains #f
   (define (-opt t) (*Un (-val #f) t))

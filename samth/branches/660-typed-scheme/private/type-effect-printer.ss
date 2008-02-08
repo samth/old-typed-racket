@@ -57,7 +57,7 @@
        (fp "(Listof ~a)" elem-ty)]
       [(Mu: var (Union: (list (Pair: elem-ty (F: var)) (Value: '()))))
        (fp "(Listof ~a)" elem-ty)]
-      [(Base: n) (fp "~a" n)]
+      [(Base: n) (fp "~a" n)]      
       [(Opaque: pred _) (fp "(Opaque ~a)" (syntax-object->datum pred))]
       [(Struct: 'Promise par (list fld) proc) (fp "(Promise ~a)" fld)]      
       [(Struct: nm par flds proc) 
@@ -103,10 +103,23 @@
        (fp "(All ~a ~a)" names body)]
       #;
       [(Mu-unsafe: b) (fp "(unsafe-mu ~a ~a)" (Type-seq c) b)]
+      [(Mu: x (Syntax: (Union: (list
+                                (Base: 'Number) 
+                                (Base: 'Boolean)
+                                (Base: 'Symbol)
+                                (Base: 'String)
+                                (Mu: var (Union: (list (Value: '()) (Pair: (F: x) (F: var)))))
+                                (Mu: y (Union: (list (F: x) (Pair: (F: x) (F: y)))))
+                                (Vector: (F: x))
+                                (Box: (F: x))))))
+       (fp "SyntaxObject")]
       [(Mu-name: name body) (fp "(mu ~a ~a ~a)" (Type-seq c) name body)]
       ;; FIXME - this should not be used
+      #;
       [(Scope: sc) (fp "(Scope ~a)" sc)]
-      [(B: idx) (fp "(B ~a)" idx)]
+      #;
+      [(B: idx) (fp "(B ~a)" idx)]      
+      [(Syntax: t) (fp "(Syntax ~a)" t)]
       [else (fp "Unknown Type: ~a" (struct->vector c))]
       ))
   

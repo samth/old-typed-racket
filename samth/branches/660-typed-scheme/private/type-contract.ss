@@ -11,14 +11,15 @@
    "internal-forms.ss"
    "tc-utils.ss"
    "resolve-type.ss"
-   "type-utils.ss")
+   "type-utils.ss"
+   (only "type-effect-convenience.ss" Any-Syntax))
   
   (require
    (lib "plt-match.ss")
    (lib "struct.ss" "syntax")
    (lib "stx.ss" "syntax")
    (lib "trace.ss")
-   (only (lib "contract.ss") -> ->* case-> cons/c)
+   (only (lib "contract.ss") -> ->* case-> cons/c flat-rec-contract)
    (lib "etc.ss")           
    (lib "struct.ss")
    #;(lib "syntax-browser.ss" "macro-debugger"))
@@ -26,8 +27,8 @@
   (require-for-template mzscheme (lib "contract.ss"))
   
   
-  
   (define (type->contract ty fail)
+    (define vars (make-parameter '()))
     (let/cc exit
       (let t->c ([ty ty])
         (match ty
@@ -36,6 +37,7 @@
           ;; we special-case lists:
           [(Mu: var (Union: (list (Value: '()) (Pair: elem-ty (F: var)))))
            #`(listof #,(t->c elem-ty))]
+          [(? (lambda (e) (eq? Any-Syntax e))) #'syntax?]
           [(Base: sym)
            (case sym
              [(Number) #'number?]
@@ -85,11 +87,22 @@
           [(Vector: t)
            #`(vectorof #,(t->c t))]
           [(Pair: t1 t2)
-           #`(cons-unsafe/c #,(t->c t1) #,(t->c t2))]
+           #`(cons/c #,(t->c t1) #,(t->c t2))]
           [(Opaque: p? cert)
            #`(flat-contract #,(cert p?))]
+          [(F: v) (cond [(assoc v (vars)) => cadr]
+                        [else (int-err "unknown var: ~a" v)])]
+          [(Mu: n b)
+           (with-syntax ([(n*) (generate-temporaries (list n))])
+             (parameterize ([vars (cons (list n #'n*) (vars))])
+               #`(flat-rec-contract n* #,(t->c b))))]
           [(Value: #f) #'false/c]      
           [(Value: '()) #'null?]
+          [(Syntax: (Base: 'Symbol)) #'identifier?]
+          [(Syntax: t)
+           (if (equal? ty Any-Syntax)
+               #`syntax?
+               #`(syntax/c #,(t->c t)))]
           [(Value: v) #`(flat-named-contract #,(format "~a" v) (lambda (x) (equal? x #,v)))]
           [else (exit (fail))]))))
   

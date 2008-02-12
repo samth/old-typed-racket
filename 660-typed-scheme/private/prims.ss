@@ -2,19 +2,15 @@
 
 #|
 
-This file defines three sorts of primitives. All of them are provided into any module using the typed scheme language.
+This file defines two sorts of primitives. All of them are provided into any module using the typed scheme language.
 
-1. function definitions available to the user, extending the mzscheme builtins
-   examples include: cars, fst, atom?, build-vector
-   all of these ought to go away eventually, some by fixing requiring, some by strengthing the type system
-
-2. macros for defining type annotated code. 
+1. macros for defining type annotated code. 
    this includes: lambda:, define:, etc
    potentially, these macros should be replacements for the mzscheme ones in the user program
    however, it's nice to be able to use both when the sugar is more limited
    for example: (define ((f x) y) (+ x y))
 
-3. macros for defining 'magic' code
+2. macros for defining 'magic' code
    examples: define-typed-struct, require/typed
    these expand into (ignored) mzscheme code, and declarations that a typechecker understands
    in order to protect the declarations, they are wrapped in `#%app void' so that local-expand of the module body
@@ -90,11 +86,22 @@ This file defines three sorts of primitives. All of them are provided into any m
                   #,(syntax-property #'(require/contract pred pred-cnt lib)
                                      'typechecker:ignore #t)))))]))
 
-(define-for-syntax (types-of-formals stx)
+(define-for-syntax (types-of-formals stx src)
   (syntax-case stx (:)
     [([var : ty] ...) (quasisyntax/loc stx (ty ...))]
-    [([var : ty] ... . [rest : rest-ty]) (syntax/loc stx (ty ... rest-ty ..))])
-  )
+    [([var : ty] ... . [rest : rest-ty]) (syntax/loc stx (ty ... rest-ty ..))]
+    [_
+     (let loop ([stx stx])
+       (syntax-case stx ()
+         ;; should never happen
+         [() (raise-syntax-error #f "bad annotation syntax" src stx)]
+         [([var : ty] . rest)
+          (identifier? #'var)
+          (loop #'rest)]
+         [([var : ty] . rest)
+          (raise-syntax-error #f "not a variable" src #'var)]
+         [(e . rest)
+          (raise-syntax-error #f "expected annotated variable of the form [x : T], got something else" src #'e)]))]))
 
 
 (define-syntax (plambda: stx)
@@ -114,16 +121,11 @@ This file defines three sorts of primitives. All of them are provided into any m
 (define-syntax (pdefine: stx)
   (syntax-case stx (:)
     [(pdefine: tvars (nm . formals) : ret-ty . body)
-     (with-syntax* ([(tys ...) (types-of-formals #'formals)]
+     (with-syntax* ([(tys ...) (types-of-formals #'formals stx)]
                     [type (syntax/loc #'ret-ty (All tvars (tys ... -> ret-ty)))])
                    (syntax/loc stx
                      (define: nm : type
                        (plambda: tvars formals . body))))]))
-
-
-#;(define-for-syntax (relocate stx loc)
-    (with-syntax ([x stx])
-      (syntax/loc loc x)))
 
 (define-syntax (ann stx)
   (syntax-case stx (:)
@@ -135,51 +137,24 @@ This file defines three sorts of primitives. All of them are provided into any m
   (syntax-case stx ()
     [(_ id ty)
      (identifier? #'id)
-     #'(#%plain-app void (quote-syntax (:-internal id ty)))]))
+     #'(#%plain-app void (quote-syntax (:-internal id ty)))]
+    [(_ id ty)
+     (raise-syntax-error #f "can only annotate identifiers with types" stx #'id)]
+    [(_ _ _ _ . _)
+     (raise-syntax-error #f "too many arguments" stx)]
+    [(_ _)
+     (raise-syntax-error #f "too few arguments" stx)]))
 
 (define-syntax (inst stx)
   (syntax-case stx (:)
     [(_ arg : tys ...)
      (syntax-property #'arg 'type-inst #'(tys ...))]))
 
-
-(define-syntax (-define-values stx)
-  (syntax-case stx ()
-    [(_ (vars ...) body)
-     (eq? (syntax-local-context) 'module)
-     (with-syntax* ([(fresh-vars ...) (generate-temporaries #'(vars ...))]
-                    [(props ...) (map (lambda (v) (syntax-property v 'type-label))
-                                      (syntax->list #'(vars ...)))]
-                    [(fresh ...) (map (lambda (id orig-id)
-                                        (let ([prop-stx (syntax-property #'dummy 'defined-type-label
-                                                                         (syntax-property orig-id 'type-label))])
-                                          (datum->syntax id (syntax-e id) orig-id prop-stx)))
-                                      (syntax->list #'(fresh-vars ...))
-                                      (syntax->list #'(vars ...)))])
-                   (with-syntax ([def-fresh (syntax/loc stx (define-values (fresh ...) body))])
-                     #'(begin
-                         def-fresh
-                         (define-syntax vars
-                           (make-set!-transformer
-                            (lambda (s)
-                              (define (fresh-id n)
-                                (syntax-property
-                                 #;(relocate #'fresh n)
-                                 (datum->syntax-object #'fresh (syntax-e #'fresh) n #f)
-                                 'defined-type-label
-                                 (datum->syntax-object n (syntax-object->datum #'props) #'props)))
-                              (syntax-case s (set!)
-                                [(set! nm v) (quasisyntax/loc s (set! #,(fresh-id #'nm) v))]
-                                [(nm . args) (quasisyntax/loc s (#,(fresh-id #'nm) . args))]
-                                [n (identifier? #'n) (fresh-id #'n)])))) ...)))]
-    [(_ . rest) 
-     (syntax/loc stx (define-values . rest))]))
-
-
 (define-syntax (define: stx)
   (syntax-case stx (:)
     [(define: (nm . formals) : ret-ty body ...)
-     (with-syntax* ([(tys ...) (types-of-formals #'formals)]
+     (identifier? #'nm)
+     (with-syntax* ([(tys ...) (types-of-formals #'formals stx)]
                     [arrty (syntax/loc stx (tys ... -> ret-ty))])
                    (syntax/loc stx
                      (define: nm : arrty
@@ -188,19 +163,14 @@ This file defines three sorts of primitives. All of them are provided into any m
      (identifier? #'nm)
      (with-syntax ([new-nm (syntax-property #'nm 'type-label #'ty)])
        (syntax/loc stx (define new-nm body)))]
+    [(define: (nm . formals) body ...)
+     (raise-syntax-error #f "missing return type annotation" stx)]
+    [(define: nm body)
+     (raise-syntax-error #f "missing type annotation" stx)]
     [(define: (vars ...) (f args ...) : ret body ...)
+     (andmap identifier? (syntax->list #'(vars ...)))
      #'(pdefine: (vars ...) (f args ...) : ret body ...)]))
 
-(define-syntax (-define stx)
-  (syntax-case stx ()
-    [(_ (f . args) . b)
-     (eq? (syntax-local-context) 'module)       
-     (syntax/loc stx (-define f (lambda args . b)))]
-    [(_ v b)       
-     (eq? (syntax-local-context) 'module)
-     (syntax/loc stx (-define-values (v) b))]
-    [(_ . rest)
-     (syntax/loc stx (define . rest))]))
 
 ;; helper function for annoating the bound names
 (define-for-syntax (annotate-names stx)
@@ -312,57 +282,6 @@ This file defines three sorts of primitives. All of them are provided into any m
                        (require/typed maker (ty ... -> oty) lib)
                        (require/typed sel (oty -> ty) lib) ...))]))
 
-
-;; the old version, copied from eli
-(define-syntax (--define-type stx)
-  (syntax-case stx (:)
-    [(define-datatype nm [variant (fld ty) ...] ...)
-     (with-syntax* (;; create new names for the internal structs
-                    [(variant* ...) (generate-temporaries #'(variant ...))]
-                    ;; figure out what the names for the "external" structs are
-                    [((struct-info maker pred sel ...) ...) (map (lambda (name flds) (build-struct-names name flds #f #t name))
-                                                                 (syntax->list #'(variant ...))
-                                                                 (map syntax->list (syntax->list #'((fld ...) ...))))]
-                    ;; names for the real internal structs
-                    [((struct-info* maker* pred* sel* ...) ...) (map (lambda (name flds) (build-struct-names name flds #f #t name))
-                                                                     (syntax->list #'(variant* ...))
-                                                                     (map syntax->list (syntax->list #'((fld ...) ...))))]
-                    ;; generate the code to create all the structs and the extra bindings
-                    [d-s (syntax/loc stx
-                           (begin (define-struct nm ())
-                                  (define-struct (variant* nm) (fld ...)) ...
-                                  (define variant maker*) ...
-                                  (define pred pred*) ...
-                                  (begin (define sel sel*) ...) ...))]
-                    [ddi (quasisyntax/loc stx (#%app void (quote-syntax (define-type-internal nm [variant variant* (fld ty) ...] ...))))])
-                   #`(begin
-                       #,(ignore #'d-s)
-                       ddi))]))
-
-;; new, simpler version
-(define-syntax (-define-type stx)
-  (define (ignore stx) (syntax-property stx 'typechecker:ignore #t))
-  (syntax-case stx (:)
-    [(define-datatype nm [variant (fld ty) ...] ...)
-     (with-syntax* (;; make the name for the top predicate
-                    [(_ _m top-pred . other) (build-struct-names #'nm null #f #f #'nm)]
-                    ;; figure out what the names for the structs are
-                    [((struct-info maker pred sel ...) ...) (map (lambda (name flds) (build-struct-names name flds #f #t name))
-                                                                 (syntax->list #'(variant ...))
-                                                                 (map syntax->list (syntax->list #'((fld ...) ...))))]
-                    ;; create the maker names
-                    [(maker* ...) #'(maker ...)]
-                    ;; generate the code to create all the structs and the extra bindings
-                    [d-s (syntax/loc stx
-                           (begin 
-                             (define-syntax nm (lambda (stx) (raise-syntax-error 'type-check "type name used out of context" stx)))
-                             (define-struct variant (fld ...)) ...
-                             (define (top-pred arg) (or (pred arg) ...))))]
-                    [ddi (quasisyntax/loc stx (#%app void (quote-syntax (define-type-internal nm top-pred [variant maker* (fld ty) ...] ...))))])
-                   #`(begin
-                       #,(ignore #'d-s)
-                       ddi))]))
-
 (define-syntax (do: stx)
   (syntax-case stx (:)
     [(_ : ty ((var : tys init . step) ...) (e0 e1 ...) c ...)
@@ -391,22 +310,5 @@ This file defines three sorts of primitives. All of them are provided into any m
                       (begin e1 e2 ...)
                       (begin c ... (doloop step ...)))))]))]))
 
-;; this macro allows smaller transformations of cond to 
-;; allow the typechecker to understand the code
-(define-syntax (cond* stx)
-  (syntax-case stx (else and or)
-    ;; the appropriate transformation greatly increases code size
-    #;[(cond* [(and e0 es ...) . b] cls ...)
-       (if e0 (cond* [(and es ...) . b] cls ...) #f)]
-    [(cond* [pred acc var body ...] cl ...)
-     (identifier? #'var)
-     #'(let ([var acc])
-         (if (pred var)
-             (begin body ...)
-             (cond* cl ...)))]
-    [(cond* [else e ...]) #'(begin e ...)]
-    [(cond* cl cls ...)
-     #'(cond cl [else (cond* cls ...)])]
-    [(cond*) #'(cond)]))
 
 

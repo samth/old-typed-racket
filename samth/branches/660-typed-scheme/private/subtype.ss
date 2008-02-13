@@ -160,7 +160,10 @@
               [(list (Union: (list)) _) A0]
               ;; value types              
               [(list (Value: v1) (Value: v2)) (=> unmatch) (if (equal? v1 v2) A0 (unmatch))]
+              ;; integers are numbers too
+              [(list (Base: 'Integer) (Base: 'Number)) A0]
               ;; values are subtypes of their "type"
+              [(list (Value: (? integer? n)) (Base: 'Integer)) A0]
               [(list (Value: (? number? n)) (Base: 'Number)) A0]
               [(list (Value: (? boolean? n)) (Base: 'Boolean)) A0]
               [(list (Value: (? symbol? n)) (Base: 'Symbol)) A0]

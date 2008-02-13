@@ -77,6 +77,7 @@
     (make-Struct (string->uninterned-symbol "Promise") #f (list t) #f))
   
   (define N (make-Base 'Number))
+  (define -Integer (make-Base 'Integer))
   (define B (make-Base 'Boolean))
   (define Sym (make-Base 'Symbol))
   (define -Void (make-Base 'Void))

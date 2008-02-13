@@ -93,6 +93,7 @@
      (eof-object? (make-pred-ty (-val eof)))
      [null (-val null)]
      (number? (make-pred-ty N))
+     (integer? (make-pred-ty -Integer))
      (boolean? (make-pred-ty B))
      (add1 (-> N N))
      (sub1 (-> N N))
@@ -498,6 +499,7 @@
 ;; the initial set of available type names
 (define-tname-env initial-type-names provide-tnames
   [Number N]
+  [Integer -Integer]
   [Void -Void]
   [Boolean B]
   [Symbol Sym]

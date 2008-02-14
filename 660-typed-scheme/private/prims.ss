@@ -163,13 +163,13 @@ This file defines two sorts of primitives. All of them are provided into any mod
      (identifier? #'nm)
      (with-syntax ([new-nm (syntax-property #'nm 'type-label #'ty)])
        (syntax/loc stx (define new-nm body)))]
+    [(define: (vars ...) (f args ...) : ret body ...)
+     (andmap identifier? (syntax->list #'(vars ...)))
+     #'(pdefine: (vars ...) (f args ...) : ret body ...)]
     [(define: (nm . formals) body ...)
      (raise-syntax-error #f "missing return type annotation" stx)]
     [(define: nm body)
-     (raise-syntax-error #f "missing type annotation" stx)]
-    [(define: (vars ...) (f args ...) : ret body ...)
-     (andmap identifier? (syntax->list #'(vars ...)))
-     #'(pdefine: (vars ...) (f args ...) : ret body ...)]))
+     (raise-syntax-error #f "missing type annotation" stx)]))
 
 
 ;; helper function for annoating the bound names

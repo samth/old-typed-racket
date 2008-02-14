@@ -149,7 +149,7 @@
 ;; typecheck a sequence of case-lambda clauses, which is possibly polymorphic
 ;; tc/lambda/internal syntax syntax-list syntax-list option[type] -> Type
 (define (tc/lambda/internal form formals bodies expected)
-  (if (syntax-property form 'typechecker:plambda)
+  (if (or (syntax-property form 'typechecker:plambda) (Poly? expected))
       (tc/plambda form formals bodies expected)
       (ret (tc/mono-lambda formals bodies expected))))
 
@@ -160,9 +160,12 @@
 ;; formals and bodies must by syntax-lists
 (define (tc/plambda form formals bodies expected)
   (match expected
-    [(Poly-names: _ (and expected* (Function: _)))
-     (with-syntax ([tvars (syntax-property form 'typechecker:plambda)])
-       (let* ([literal-tvars (map syntax-e (syntax->list #'tvars))]
+    [(Poly-names: ns (and expected* (Function: _)))
+     (with-syntax ()
+       (let* ([tvars (let ([p (syntax-property form 'typechecker:plambda)])
+                       (or (and p (map syntax-e (syntax->list p)))
+                           ns))]
+              [literal-tvars tvars]
               [new-tvars (map make-F literal-tvars)]
               [ty (parameterize ([current-tvars (extend-env literal-tvars new-tvars (current-tvars))])
                     (tc/mono-lambda formals bodies expected*))])

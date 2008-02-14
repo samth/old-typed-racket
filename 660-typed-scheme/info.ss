@@ -24,7 +24,7 @@
   (define blurb `("This language allows the definition and execution of Typed Scheme programs."))
   
 
-  (define scribblings '(("doc/manual.scrbl" (#;multi-page))))
+  ;; (define scribblings '(("doc/manual.scrbl" (#;multi-page))))
 
 
   )

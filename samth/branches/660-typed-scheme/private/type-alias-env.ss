@@ -58,4 +58,8 @@
 ;; map over the-mapping, producing a list
 ;; (id type -> T) -> listof[T]
 (define (type-alias-env-map f)
-  (module-identifier-mapping-map the-mapping (compose f (lambda (id t) (values id (resolved-ty t))))))
+  (define sym (gensym))
+  (filter (lambda (e) (not (eq? sym e)))
+          (module-identifier-mapping-map the-mapping (lambda (id t) (if (resolved? t)
+                                                                        (f id (resolved-ty t))
+                                                                        sym)))))

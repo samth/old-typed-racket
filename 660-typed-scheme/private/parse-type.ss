@@ -38,7 +38,7 @@
        (eq? (syntax-e #'Tuple) 'Tuple)
        (begin
          (add-type-name-reference (stx-car stx))
-         (foldr -pair (-val '()) (map parse-type (syntax->list #'(ts ...)))))]
+         (-Tuple (map parse-type (syntax->list #'(ts ...)))))]
       [(cons fst rst)
        (eq? (syntax-e #'cons) 'cons)
        (-pair (parse-type #'fst) (parse-type #'rst))]

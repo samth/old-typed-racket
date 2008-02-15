@@ -44,6 +44,15 @@
   ;; print-type : Type Port Boolean -> Void
   (define (print-type c port write?)
     (define (fp . args) (apply fprintf port args)) 
+    (define (tuple? t)
+      (match t
+        [(Pair: a (? tuple?)) #t]
+        [(Value: '()) #t]
+        [_ #f]))
+    (define (tuple-elems t)
+      (match t
+        [(Pair: a e) (cons a (tuple-elems e))]
+        [(Value: '()) null]))
     ;(fp "~a~n" (Type-seq c))
     (match c 
       [(Univ:) (fp "Any")]
@@ -57,6 +66,11 @@
        (fp "(Listof ~a)" elem-ty)]
       [(Mu: var (Union: (list (Pair: elem-ty (F: var)) (Value: '()))))
        (fp "(Listof ~a)" elem-ty)]
+      [(Value: v) (cond [(or (symbol? v) (null? v))
+                         (fp "'~a" v)]
+                        [else (fp "~a" v)])]
+      [(? tuple? t)
+       (fp "~a" (cons 'Tuple (tuple-elems t)))]
       [(Base: n) (fp "~a" n)]      
       [(Opaque: pred _) (fp "(Opaque ~a)" (syntax-object->datum pred))]
       [(Struct: 'Promise par (list fld) proc) (fp "(Promise ~a)" fld)]      
@@ -81,10 +95,7 @@
          (match arities
            [(list) (fp "(case-lambda)")]
            [(list a) (print-arr a)]
-           [(list a ...) (fp "(case-lambda ") (for-each print-arr a) (fp ")")]))]
-      [(Value: v) (cond [(or (symbol? v) (null? v))
-                         (fp "'~a" v)]
-                        [else (fp "~a" v)])]
+           [(list a ...) (fp "(case-lambda ") (for-each print-arr a) (fp ")")]))]      
       [(Vector: e) (fp "(Vectorof ~a)" e)]
       [(Box: e) (fp "(Box ~a)" e)]
       [(Union: elems) (fp "~a" (cons 'U elems))]

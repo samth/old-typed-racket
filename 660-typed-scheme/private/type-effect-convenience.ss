@@ -169,6 +169,9 @@
   (define -Pattern (*Un -String -Bytes -Regexp -Byte-Regexp -PRegexp -Byte-PRegexp))
   (define -Byte N)
   
+  (define (-Tuple l)
+    (foldr -pair (-val '()) l))
+  
   (define Any-Syntax 
     (-mu x
          (-Syntax (*Un 

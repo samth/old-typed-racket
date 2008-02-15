@@ -94,7 +94,7 @@
                #;(printf "tried to create ~a types~n" (all-count!))
                #;(printf "created ~a union types~n" (union-count!))
                ;; reconstruct the module with the extra code
-               #'(pmb transformed-body2 ... extra-code check-syntax-help))))))))))
+               #'(#%module-begin transformed-body2 ... extra-code check-syntax-help))))))))))
 
 (define-syntax (top-interaction stx)
   (syntax-case stx ()

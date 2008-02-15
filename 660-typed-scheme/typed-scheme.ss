@@ -48,9 +48,10 @@
 
 (define-syntax (module-begin stx)
   (define module-name (syntax-property stx 'enclosing-module-name))
+  ;(printf "BEGIN: ~a~n" (syntax->datum stx))
   (with-logging-to-file 
    (log-file-name (syntax-src stx) module-name)
-   (syntax-case stx ()                     
+   (syntax-case stx ()
      ((mb forms ...)
       (begin
         (set-box! typed-context? #t)
@@ -78,15 +79,19 @@
              (do-time "Initialized Envs")
              (with-syntax* (;; local-expand the module
                             ;; pmb = #%plain-module-begin
-                            [(pmb body2 ...) 
+                            [new-mod 
                              (local-expand #`(#%plain-module-begin 
                                               forms ...)
                                            'module-begin 
                                            null
                                            #;stop-list)]
+                            [(pmb body2 ...) #'new-mod]
                             [__ (do-time "Local Expand Done")]
                             ;; typecheck the body, and produce syntax-time code that registers types
-                            [(before-code after-code) (type-check #'(body2 ...))]
+                            [(before-code after-code) 
+                             (parameterize ([orig-module-stx stx]
+                                            [expanded-module-stx #'new-mod])
+                               (type-check #'(body2 ...)))]
                             [check-syntax-help (syntax-property #'(void) 'disappeared-use (type-name-references))]
                             [(transformed-body ...) (remove-provides #'(body2 ...))]
                             [(transformed-body ...) (remove-contract-fixups #'(transformed-body ...))])

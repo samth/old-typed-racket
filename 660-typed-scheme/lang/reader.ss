@@ -21,6 +21,6 @@
                          (string->symbol (path->string (path-replace-suffix name #""))))
                        'page)]
              [id 'doc])
-        `(module ,name typed-scheme/lang/main . ,body))))
+        `(module ,name typed-scheme/lang/main (#%module-begin . ,body)))))
   
   (provide (rename-out [*read read] [*read-syntax read-syntax])))

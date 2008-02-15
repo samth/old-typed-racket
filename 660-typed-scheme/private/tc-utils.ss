@@ -1,9 +1,12 @@
 (module tc-utils mzscheme
   (provide (all-defined))
-  (require (lib "list.ss") (lib "etc.ss"))
+  (require (lib "list.ss") (lib "etc.ss")
+           "syntax-traversal.ss")
 
   ;; a parameter representing the original location of the syntax being currently checked
   (define current-orig-stx (make-parameter #'here))
+  (define orig-module-stx (make-parameter #f))
+  (define expanded-module-stx (make-parameter #f))
   
   ;; helper function, not currently used
   (define (find-origin stx)
@@ -21,9 +24,19 @@
   
   (define check-unreachable-code? (make-parameter #f))
   
+  (define (locate-stx stx)
+    (define omodule (orig-module-stx))
+    (define emodule (expanded-module-stx))
+    ;(printf "orig: ~a~n" (syntax-object->datum omodule))
+    (look-for-in-orig omodule emodule stx))
+  
   ;; produce a type error, using the current syntax
   (define (tc-error msg . rest)
-    (define cur-stx (current-orig-stx))
+    (define cur-stx 
+      (if (print-syntax?)
+          (current-orig-stx)
+          (locate-stx (current-orig-stx))))
+    #;
     (define new-stx 
       (cond 
         [(or (print-syntax?)
@@ -33,7 +46,7 @@
         [(and (not (syntax-source cur-stx)) (find-origin cur-stx))]
         [else (datum->syntax-object cur-stx (syntax-e (or (find-origin cur-stx) #'..)) cur-stx cur-stx)]))
     ;(printf "Aliases: ~a~n" ((current-type-names)))
-    (raise-syntax-error 'typecheck (apply format msg rest) new-stx new-stx))
+    (raise-syntax-error 'typecheck (apply format msg rest) cur-stx cur-stx))
   
   ;; produce a type error, given a particular syntax
   (define (tc-error/stx stx msg . rest)

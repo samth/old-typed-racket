@@ -63,9 +63,16 @@
      
      (car (make-Poly (list 'a 'b) (cl-> [((-pair (-v a) (-v b))) (-v a)]
                                         [((make-lst (-v a))) (-v a)])))
-     [first (-poly (a) ((-lst a) . -> .  a))]
-     [second (-poly (a) ((-lst a) . -> .  a))]
-     [third (-poly (a) ((-lst a) . -> .  a))]
+     [first (make-Poly (list 'a 'b) (cl-> [((-pair (-v a) (-v b))) (-v a)]
+                                          [((make-lst (-v a))) (-v a)]))]
+     [second (-poly (a b c)
+                    (cl->                
+                     [((-pair a (-pair b c))) b]
+                     [((-lst a)) a]))]
+     [third (-poly (a b c d)
+                   (cl->                
+                    [((-pair a (-pair b (-pair c d)))) c]
+                    [((-lst a)) a]))]
      [fourth (-poly (a) ((-lst a) . -> .  a))]
      [fifth (-poly (a) ((-lst a) . -> .  a))]
      [sixth (-poly (a) ((-lst a) . -> .  a))]

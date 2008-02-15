@@ -244,6 +244,8 @@
               ;; subtyping on other stuff
               [(list (Syntax: t) (Syntax: t*))
                (subtype* A0 t t*)]
+              [(list (Instance: t) (Instance: t*))
+               (subtype* A0 t t*)]
               ;; otherwise, not a subtype
               [_ (fail! s t) (printf "failed")]))))))
 

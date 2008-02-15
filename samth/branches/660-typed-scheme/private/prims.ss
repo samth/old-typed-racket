@@ -55,23 +55,24 @@ This file defines two sorts of primitives. All of them are provided into any mod
 (define-syntax (require/typed stx)
   
   (syntax-case* stx (rename) (lambda (x y) (eq? (syntax-e x) (syntax-e y)))
+    [(_ lib [nm ty] ...)
+     #'(begin (require/typed nm ty lib) ...)]
     [(_ nm ty lib)
      (identifier? #'nm)
-     ;; b/c we parse this here, we can't use types defined in this module
-     (with-syntax ([cnt (type->contract (parse-type/id #'nm #'ty)
-                                        (lambda () (tc-error/stx #'ty "Cannot convert type ~a to a contract" #'ty)))])
-       (quasisyntax/loc stx (begin (#%app void (quote-syntax (require/typed-internal nm ty)))
-                                   #,(syntax-property #'(require/contract nm cnt lib)
-                                                      'typechecker:ignore #t))))]
+     (quasisyntax/loc stx (begin 
+                            #,(syntax-property (syntax-property #'(define cnt* #f)
+                                                                'typechecker:contract-def #'ty)
+                                               'typechecker:ignore #t)
+                            (#%app void (quote-syntax (require/typed-internal nm ty)))
+                            #,(syntax-property #'(require/contract nm cnt* lib)
+                                               'typechecker:ignore #t)))]
     [(_ (rename internal-nm nm) ty lib)
      (identifier? #'nm)
      ;; b/c we parse this here, we can't use types defined in this module
      (with-syntax ([cnt (type->contract (parse-type/id #'nm #'ty))])
        (quasisyntax/loc stx (begin (#%app void (quote-syntax (require/typed-internal nm ty)))
                                    #,(syntax-property #'(require/contract nm cnt lib)
-                                                      'typechecker:ignore #t))))]
-    [(_ lib [nm ty] ...)
-     #'(begin (require/typed nm ty lib) ...)]))      
+                                                      'typechecker:ignore #t))))]))      
 
 (define-syntax (require/opaque-type stx)
   (syntax-case stx ()

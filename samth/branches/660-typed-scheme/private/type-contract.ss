@@ -1,6 +1,6 @@
 (module type-contract mzscheme
   
-  (provide type->contract)
+  (provide type->contract define/fixup-contract? generate-contract-def remove-contract-fixups)
   
   (require
    "type-rep.ss"   
@@ -12,6 +12,7 @@
    "tc-utils.ss"
    "resolve-type.ss"
    "type-utils.ss"
+   mzlib/list   
    (only "type-effect-convenience.ss" Any-Syntax))
   
   (require
@@ -24,7 +25,22 @@
    (lib "struct.ss")
    #;(lib "syntax-browser.ss" "macro-debugger"))
   
-  (require-for-template mzscheme (lib "contract.ss"))
+  (require-for-template mzscheme (lib "contract.ss") (only scheme/class object%))
+  
+  (define (define/fixup-contract? stx)
+    (syntax-property stx 'typechecker:contract-def))
+  
+  (define (generate-contract-def stx)
+    (define prop (syntax-property stx 'typechecker:contract-def))
+    (define typ (parse-type prop))
+    (syntax-case stx (define-values)
+      [(_ (n) __)
+       (with-syntax ([cnt (type->contract typ (lambda () (tc-error/stx prop "Type ~a could not be converted to a contract." typ)))])
+         (syntax/loc stx (define-values (n) cnt)))]
+      [_ (error 'bad)]))
+  
+  (define (remove-contract-fixups forms)
+    (filter (lambda (e) (not (define/fixup-contract? e))) (syntax->list forms)))
   
   
   (define (type->contract ty fail)
@@ -96,7 +112,9 @@
            (with-syntax ([(n*) (generate-temporaries (list n))])
              (parameterize ([vars (cons (list n #'n*) (vars))])
                #`(flat-rec-contract n* #,(t->c b))))]
-          [(Value: #f) #'false/c]      
+          [(Value: #f) #'false/c]    
+          [(Instance: _) #'(is-a?/c object%)]
+          [(Class: _ _ _) #'(subclass?/c object%)]
           [(Value: '()) #'null?]
           [(Syntax: (Base: 'Symbol)) #'identifier?]
           [(Syntax: t)

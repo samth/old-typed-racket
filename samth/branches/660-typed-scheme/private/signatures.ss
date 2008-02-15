@@ -34,7 +34,7 @@
     (tc/lambda tc/lambda/check tc/rec-lambda/check))
   
   (define-signature tc-app^
-    (tc/app tc/app/check))
+    (tc/app tc/app/check tc/funapp))
   
   (define-signature tc-let^
     (tc/let-values tc/letrec-values tc/let-values/check tc/letrec-values/check))

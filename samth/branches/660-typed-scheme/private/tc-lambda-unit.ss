@@ -54,7 +54,7 @@
                   => (lambda (thn/els) (make-arr arg-tys t #f (car thn/els) (cdr thn/els)))]
                  ;; otherwise, the simple case
                  [else (make-arr arg-tys t)])]
-              [_ (int-err "bad match")])))
+              [t (int-err "bad match - not a tc-result: ~a" t)])))
          (let* ([arg-list (syntax->list #'(args* ...))]
                 [arg-types (map get-type arg-list)])
            (for-each (lambda (a) (printf/log "Lambda Var: ~a~n" (syntax-e a))) arg-list)
@@ -69,7 +69,7 @@
                   => (lambda (thn/els) (make-arr arg-types t #f (car thn/els) (cdr thn/els)))]
                  ;; otherwise, the simple case
                  [else (make-arr arg-types t)])]
-              [_ (int-err "bad match")]))))]
+              [t (int-err "bad match - not a tc-result: ~a" t)]))))]
     [(args* ... . rest)
      (let ([t (tc/lambda-clause args body)])               
        (check-below (make-Function (list t)) (make-Function (list (make-arr arg-tys ret-ty rest-ty))))
@@ -93,7 +93,7 @@
               => (lambda (thn/els) (make-arr arg-types t #f (car thn/els) (cdr thn/els)))]
              ;; otherwise, the simple case
              [else (make-arr arg-types t)])]
-          [_ (int-err "bad match")])))]
+          [t (int-err "bad match - not a tc-result: ~a" t)])))]
     [(args ... . rest)
      (let* ([arg-list (syntax->list #'(args ...))]
             [arg-types (map get-type arg-list)]

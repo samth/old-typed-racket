@@ -20,6 +20,7 @@
          "def-binding.ss"
          "provide-handling.ss"
          "type-alias-env.ss"
+         "type-contract.ss"
          
          (for-template
           "internal-forms.ss"
@@ -195,7 +196,7 @@
 (define (type-check forms0)
   (begin-with-definitions
     (define forms (syntax->list forms0))
-    (define-values (type-aliases struct-defs stx-defs0 val-defs0 provs)
+    (define-values (type-aliases struct-defs stx-defs0 val-defs0 provs reqs)
       (filter-multiple 
        forms
        (internal-syntax-pred define-type-alias-internal)
@@ -203,7 +204,8 @@
                        ((internal-syntax-pred define-typed-struct/exec-internal) e)))
        parse-syntax-def
        parse-def 
-       provide?))
+       provide?
+       define/fixup-contract?))
     (for-each (compose register-type-alias parse-type-alias) type-aliases)   
     ;; add the struct names to the type table
     (for-each (compose add-type-name! names-of-struct) struct-defs)
@@ -220,12 +222,14 @@
     (for-each tc-toplevel/pass2 forms)
     ;; compute the new provides
     (with-syntax
-        ([((new-provs ...) ...) (map (generate-prov stx-defs val-defs) provs)])
-      #`(begin
-          #,(env-init-code)
-          #,(tname-env-init-code)
-          #,(talias-env-init-code)
-          (begin new-provs ... ...)))))
+        ([((new-provs ...) ...) (map (generate-prov stx-defs val-defs) provs)]
+         [(new-defs ...) (map generate-contract-def reqs)])
+      #`((begin new-defs ...)
+         (begin
+           #,(env-init-code)
+           #,(tname-env-init-code)
+           #,(talias-env-init-code)
+           (begin new-provs ... ...))))))
 
 ;; typecheck a top-level form
 ;; used only from #%top-interaction

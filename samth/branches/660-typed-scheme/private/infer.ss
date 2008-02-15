@@ -133,12 +133,9 @@
           (infer/int b a tbl flag)))
     (cond [(null? ts) tbl]
           [(and rest (null? ss))
-           (printf "doing rest ~a ~a~n" rest (car ts))
            (let ([tbl* (ii rest (car ts))])
-             (printf "done this one~n")
              (loop-types ss (cdr ts) tbl*))]
           [else 
-           (printf "doing args~n")
            (let ([tbl* (ii (car ss) (car ts))])
              (loop-types (cdr ss) (cdr ts) tbl*))])))
 
@@ -269,13 +266,11 @@
          (=> unmatch)
          (let loop ([t-arr t-arr] [s-arr s-arr] [mapping mapping])
            (define (U a b) ((table:un flag) a b))
-           (define (unmatch!) (printf "unmatching~n") (unmatch))
-           (printf "in new impl~n")
+           (define (unmatch!) (unmatch))
            (cond [(and (null? t-arr) (null? s-arr)) mapping]
                  [(or (null? t-arr) (null? s-arr)) (unmatch!)]
                  [else (match (list (car t-arr) (car s-arr))
                          [(list (arr: ts t t-rest t-thn-eff t-els-eff) (arr: ss s s-rest s-thn-eff s-els-eff))
-                          (printf "in this case ~a ~a ~a ~a~n" ts ss t-rest s-rest)
                           (let ([arg-mapping 
                                  (cond [(and t-rest s-rest (= (length ts) (length ss)))
                                         (infer/int/list (cons t-rest ts) (cons s-rest ss) mapping (swap flag))]
@@ -284,7 +279,6 @@
                                        [(and t-rest (not s-rest) (<= (length ts) (length ss)))
                                         (infer/int/list/vararg ts t-rest ss mapping (swap flag) #t)]
                                        [(and s-rest (not t-rest) (>= (length ts) (length ss)))
-                                        (printf "doing what we should~n")
                                         (infer/int/list/vararg ss s-rest ts mapping (swap flag) #f)]
                                        [else (unmatch!)])]
                                 [ret-mapping (infer/int t s mapping flag)]

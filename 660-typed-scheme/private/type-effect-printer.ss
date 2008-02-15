@@ -131,6 +131,8 @@
       #;
       [(B: idx) (fp "(B ~a)" idx)]      
       [(Syntax: t) (fp "(Syntax ~a)" t)]
+      [(Instance: t) (fp "(Instance ~a)" t)]
+      [(Class: pf nf ms) (fp "(Class)")]
       [else (fp "Unknown Type: ~a" (struct->vector c))]
       ))
   

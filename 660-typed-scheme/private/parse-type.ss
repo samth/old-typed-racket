@@ -34,6 +34,22 @@
       [(fst . rst)
        (not (syntax->list #'rst))
        (-pair (parse-type #'fst) (parse-type #'rst))]
+      [(Class (pos-args ...) ([fname fty] ...) ([mname mty] ...))
+       (eq? (syntax-e #'Class) 'Class)
+       (make-Class
+        (map parse-type (syntax->list #'(pos-args ...)))
+        (map list
+             (map syntax-e (syntax->list #'(fname ...)))
+             (map parse-type (syntax->list #'(fty ...))))
+        (map list
+             (map syntax-e (syntax->list #'(mname ...)))
+             (map parse-type (syntax->list #'(mty ...)))))]
+      [(Instance t)
+       (eq? (syntax-e #'Instance) 'Instance)
+       (let ([v (parse-type #'t)])
+         (unless (or (Mu? v) (Class? v) (Union? v))
+           (tc-error "Argument to Instance must be a class type, got ~a" v))
+         (make-Instance v))]
       [(Tuple ts ...)
        (eq? (syntax-e #'Tuple) 'Tuple)
        (begin

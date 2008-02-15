@@ -3,6 +3,7 @@
 (require "signatures.ss"
          (lib "plt-match.ss")
          (lib "list.ss")
+         (prefix-in 1: srfi/1)
          "type-rep.ss"
          "effect-rep.ss"
          "tc-utils.ss"
@@ -15,11 +16,13 @@
          "type-effect-printer.ss"
          "type-annotation.ss"
          "resolve-type.ss"
+         (only-in scheme/private/class-internal make-object do-make-object)
          (lib "pretty.ss")
          (lib "trace.ss")
          (lib "kerncase.ss" "syntax"))
 
-(require (for-template (lib "plt-match.ss") "internal-forms.ss" scheme/base))
+(require (for-template (lib "plt-match.ss") "internal-forms.ss" scheme/base 
+                       (only-in scheme/private/class-internal make-object do-make-object)))
 (require (for-syntax (lib "plt-match.ss") "internal-forms.ss"))
 
 
@@ -159,21 +162,20 @@
          (tc-error "Function has no cases")]
         [f-ty (tc-error "Type of argument to apply is not a function type: ~n~a" f-ty)]))))
 
-(define (tc/funapp f args)
-  (match-let* ([ftype0 (tc-expr f)]
-               [(list (tc-result: argtypes arg-thn-effs arg-els-effs) ...) (map tc-expr (syntax->list args))])
+(define (tc/funapp f-stx args-stx ftype0 argtys)
+  (match-let* ([(list (tc-result: argtypes arg-thn-effs arg-els-effs) ...) argtys])
     (let outer-loop ([ftype ftype0] 
                      [argtypes argtypes]
                      [arg-thn-effs arg-thn-effs]
                      [arg-els-effs arg-els-effs]
-                     [args args])
+                     [args args-stx])
       (match ftype
         [(tc-result: (and sty (Struct: _ _ _ (? Type? proc-ty))) thn-eff els-eff)
          (outer-loop (ret proc-ty thn-eff els-eff)
                      (cons (tc-result-t ftype0) argtypes)
                      (cons (list) arg-thn-effs)
                      (cons (list) arg-els-effs)
-                     #`(#,(syntax/loc f dummy) #,@args))]
+                     #`(#,(syntax/loc f-stx dummy) #,@args))]
         [(tc-result: (? needs-resolving? t) thn-eff els-eff)
          (outer-loop (ret (resolve-once t) thn-eff els-eff) argtypes arg-thn-effs arg-els-effs args)]
         [(tc-result: (Param: in out))
@@ -240,7 +242,7 @@
         [(tc-result: (Union: (list (and fs (Function: _)) ...)) e1 e2)
          (match-let ([(list (tc-result: ts) ...) (map (lambda (f) (outer-loop 
                                                                    (ret f e1 e2) argtypes arg-thn-effs arg-els-effs args)) fs)])
-           (apply Un ts))]
+           (ret (apply Un ts)))]
         [(tc-result: f-ty _ _) (tc-error "Cannot apply expression of type ~a, since it is not a function type" f-ty)]))))
 
 ;(trace tc/funapp)
@@ -292,7 +294,35 @@
 
 (define (tc/app/internal form expected)
   (kernel-syntax-case* form #f 
-    (values apply not list list* call-with-values) ;; the special-cased functions     
+    (values apply not list list* call-with-values do-make-object make-object cons) ;; the special-cased functions   
+    ;; special cases for classes
+    [(#%plain-app make-object cl args ...)
+     (tc/app/internal #'(#%plain-app do-make-object cl (#%plain-app list args ...) (#%plain-app list)) expected)]     
+    [(#%plain-app do-make-object cl (#%plain-app list pos-args ...) (#%plain-app list (#%plain-app cons 'names named-args) ...))
+     (let* ([names (map syntax-e (syntax->list #'(names ...)))]
+            [name-assoc (map list names (syntax->list #'(named-args ...)))])
+       (let loop ([t (tc-expr #'cl)])
+         (match t
+           [(tc-result: (? Mu? t)) (loop (ret (unfold t)))]
+           [(tc-result: (and c (Class: pos-tys (list (and tnflds (list tnames _)) ...) _))) 
+            (unless (= (length pos-tys)
+                       (length (syntax->list #'(pos-args ...))))
+              (tc-error "expected ~a positional arguments, but got ~a" (length pos-tys) (length (syntax->list #'(pos-args ...)))))
+            (for-each tc-expr/check (syntax->list #'(pos-args ...)) pos-tys)
+            (for-each (lambda (n) (unless (memq n tnames)
+                                    (tc-error "unknown named argument ~a for class" n)))
+                      names)
+            (for-each (match-lambda
+                        [(list tname tfty)
+                         (let ([s (cond [(assq tname name-assoc) => cadr]
+                                        [else (tc-error "value not provided for named init arg ~a" tname)])])
+                           (tc-expr/check s tfty))])
+                      tnflds)
+            (ret (make-Instance c))]
+           [(tc-result: t)
+            (tc-error "expected a class value for object creation, got: ~a" t)])))]
+    [(#%plain-app do-make-object . args)
+     (int-err "bad do-make-object : ~a" (syntax->datum #'args))]
     ;; call-with-values
     [(#%plain-app call-with-values prod con)
      (match-let* ([(tc-result: prod-t) (tc-expr #'prod)]
@@ -328,7 +358,7 @@
      (and (identifier? #'eq?) (comparator? #'eq?))
      (begin
        ;; make sure the whole expression is type correct
-       (tc/funapp #'eq? #'(v1 v2))
+       (tc/funapp #'eq? #'(v1 v2) (tc-expr #'eq?) (map tc-expr (syntax->list #'(v1 v2))))
        ;; check thn and els with the eq? info
        (let-values ([(thn-eff els-eff) (tc/eq #'eq? #'v1 #'v2)])
          (ret B thn-eff els-eff)))]
@@ -399,7 +429,7 @@
     [(#%plain-app f args ...) 
      (begin
        ;(printf "default case~n~a~n" (syntax->datum form))
-       (tc/funapp #'f #'(args ...)))]))
+       (tc/funapp #'f #'(args ...) (tc-expr #'f) (map tc-expr (syntax->list #'(args ...)))))]))
 
 
 ;(trace tc/app/internal)

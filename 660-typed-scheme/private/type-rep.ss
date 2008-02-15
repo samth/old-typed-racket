@@ -131,6 +131,34 @@
   ;; t : Type
   (dt Syntax (t))
   
+  ;; pos-flds  : (Listof Type)
+  ;; name-flds : (Listof (Tuple Symbol Type))
+  ;; methods   : (Listof (Tuple Symbol Function))
+  (dt Class (pos-flds name-flds methods)
+      [#:frees (combine-frees
+                (map free-vars* (append pos-flds 
+                                        (map cadr name-flds)
+                                        (map cadr methods))))
+               (combine-frees
+                (map free-idxs* (append pos-flds 
+                                        (map cadr name-flds)
+                                        (map cadr methods))))]
+      
+      [#:fold-rhs (match (list pos-flds name-flds methods)
+                    [(list
+                      pos-tys 
+                      (list (list init-names init-tys) ___)
+                      (list (list mname mty) ___))
+                     (*Class
+                      (map type-rec-id pos-tys)
+                      (map list
+                           init-names
+                           (map type-rec-id init-tys))
+                      (map list mname (map type-rec-id mty)))])])
+  
+  ;; cls : Class
+  (dt Instance (cls))
+  
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   
   ;; Ugly hack - should use units

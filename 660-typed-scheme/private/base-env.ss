@@ -160,7 +160,7 @@
                       (make-arr (list -String) (Un) Univ)
                       (make-arr (list Sym) (Un)))))
      
-     [integer? (Univ . -> . B)]
+     
      [namespace-variable-value 
       (cl-> 
        [(Sym) Univ]
@@ -543,7 +543,7 @@
   
   
   -> U mu Un All Opaque Vectorof
-  Parameter Tuple
+  Parameter Tuple Class
   )  
 
 (provide-extra-tnames)

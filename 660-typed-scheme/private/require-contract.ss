@@ -1,12 +1,25 @@
-(module require-contract mzscheme
-  (require (lib "contract.ss"))
-  (provide require/contract)
-  (define-syntax (require/contract stx)
-    (syntax-case stx ()
-      [(require/contract nm cnt lib)
-       #`(begin (require (rename lib tmp nm))
-                (define nm (contract cnt tmp '#,(syntax-object->datum #'nm) 'never-happen #'#,stx)))]))
- )
+#lang scheme/base
+
+(require scheme/contract (for-syntax scheme/base syntax/kerncase))
+(provide require/contract define-ignored)
+
+(define-syntax (define-ignored stx)
+  (syntax-case stx ()
+    [(_ name expr)
+     (syntax-case (local-expand/capture-lifts #'expr 'expression 
+                                              (list #'define-values))
+       (begin define-values)
+       [(begin (define-values (n) e) e*)
+        #'(begin (define-values (n) e)
+                 (define name e*))]
+       [e #'(define name e)]
+       [s (error 'bad "bad: ~a" (syntax->datum #'s))])]))
+
+(define-syntax (require/contract stx)
+  (syntax-case stx ()
+    [(require/contract nm cnt lib)
+     #`(begin (require (only-in lib [nm tmp]))     
+              (define-ignored nm (contract cnt tmp '#,(syntax->datum #'nm) 'never-happen #'#,stx)))]))
 #|
 (module a mzscheme
   (provide x)

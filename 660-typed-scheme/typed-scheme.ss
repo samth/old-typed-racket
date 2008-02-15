@@ -20,6 +20,7 @@
           "private/type-effect-convenience.ss"
           "private/effect-rep.ss"
           "private/rep-utils.ss"
+          "private/type-contract.ss"
           syntax/kerncase
           mzlib/list
           mzlib/plt-match))
@@ -85,16 +86,17 @@
                                            #;stop-list)]
                             [__ (do-time "Local Expand Done")]
                             ;; typecheck the body, and produce syntax-time code that registers types
-                            [extra-code (type-check #'(body2 ...))]
+                            [(before-code after-code) (type-check #'(body2 ...))]
                             [check-syntax-help (syntax-property #'(void) 'disappeared-use (type-name-references))]
-                            [(transformed-body2 ...) (remove-provides #'(body2 ...))])
+                            [(transformed-body ...) (remove-provides #'(body2 ...))]
+                            [(transformed-body ...) (remove-contract-fixups #'(transformed-body ...))])
                (do-time "Typechecked")
                (printf "checked ~a~n" module-name)
                #;(printf "created ~a types~n" (count!))
                #;(printf "tried to create ~a types~n" (all-count!))
                #;(printf "created ~a union types~n" (union-count!))
                ;; reconstruct the module with the extra code
-               #'(#%module-begin transformed-body2 ... extra-code check-syntax-help))))))))))
+               #'(#%module-begin before-code transformed-body ... after-code check-syntax-help))))))))))
 
 (define-syntax (top-interaction stx)
   (syntax-case stx ()

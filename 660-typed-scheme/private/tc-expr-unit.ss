@@ -30,9 +30,10 @@
          "init-envs.ss"
          "effect-rep.ss"
          "mutated-vars.ss"
-         (lib "plt-match.ss"))
+         (lib "plt-match.ss")
+         scheme/private/class-internal)
 
-(require (for-template scheme/base))
+(require (for-template scheme/base scheme/private/class-internal))
 
 (import tc-if^ tc-lambda^ tc-app^ tc-let^ check-subforms^)
 (export tc-expr^)
@@ -113,7 +114,7 @@
              (check-below te expected)
              (ret expected))])
       (kernel-syntax-case* form #f 
-        (letrec-syntaxes+values) ;; letrec-syntaxes+values is not in kernel-syntax-case literals
+        (letrec-syntaxes+values find-method/who) ;; letrec-syntaxes+values is not in kernel-syntax-case literals
         [stx
          (syntax-property form 'typechecker:with-handlers)
          (check-subforms/with-handlers/check form expected)]
@@ -168,7 +169,12 @@
         [(#%plain-lambda formals . body)
          (tc/lambda/check form #'(formals) #'(body) expected)]        
         [(case-lambda [formals . body] ...)
-         (tc/lambda/check form #'(formals ...) #'(body ...) expected)]      
+         (tc/lambda/check form #'(formals ...) #'(body ...) expected)] 
+        ;; send
+        [(let-values (((_) meth))
+           (let-values (((_ _) (#%plain-app find-method/who _ rcvr _)))
+             (#%plain-app _ _ args ...)))
+         (tc/send #'rcvr #'meth #'(args ...) expected)]
         ;; let
         [(let-values ([(name ...) expr] ...) . body)
          (tc/let-values/check #'((name ...) ...) #'(expr ...) #'body form expected)]
@@ -187,7 +193,7 @@
   ;; internal-tc-expr : syntax -> Type    
   (define (internal-tc-expr form)
     (kernel-syntax-case* form #f 
-      (letrec-syntaxes+values #%datum #%app lambda) ;; letrec-syntaxes+values is not in kernel-syntax-case literals
+      (letrec-syntaxes+values #%datum #%app lambda find-method/who) ;; letrec-syntaxes+values is not in kernel-syntax-case literals
       ;; 
       [stx
        (syntax-property form 'typechecker:with-handlers)
@@ -218,7 +224,12 @@
       [(#%plain-lambda formals . body)
        (tc/lambda form #'(formals) #'(body))]        
       [(case-lambda [formals . body] ...)
-       (tc/lambda form #'(formals ...) #'(body ...))]      
+       (tc/lambda form #'(formals ...) #'(body ...))]  
+      ;; send
+      [(let-values (((_) meth))
+         (let-values (((_ _) (#%plain-app find-method/who _ rcvr _)))
+           (#%plain-app _ _ args ...)))
+       (tc/send #'rcvr #'meth #'(args ...))]
       ;; let
       [(let-values ([(name ...) expr] ...) . body)
        (tc/let-values #'((name ...) ...) #'(expr ...) #'body form)]
@@ -245,6 +256,8 @@
       ;; if
       [(if tst body) (tc/if-twoarm #'tst #'body #'(#%app void))]
       [(if tst thn els) (tc/if-twoarm #'tst #'thn #'els)]                          
+
+      
       
       ;; syntax
       ;; for now, we ignore the rhs of macros
@@ -269,6 +282,20 @@
                                        ;(printf "annotated~n")
                                        (tc-expr/check form ann))]
           [else (internal-tc-expr form)])))
+
+(define (tc/send rcvr method args [expected #f])
+  (match (tc-expr rcvr)
+    [(tc-result: (Instance: (and c (Class: _ _ methods))))
+     (match (tc-expr method)
+       [(tc-result: (Value: (? symbol? s)))
+        (let* ([ftype (cond [(assq s methods) => cadr]
+                           [else (tc-error "send: method ~a not understood by class ~a" s c)])]
+               [ret-ty (tc/funapp rcvr args (ret ftype) (map tc-expr (syntax->list args)))])
+          (if expected
+              (begin (check-below ret-ty expected) (ret expected))
+              ret-ty))]
+       [(tc-result: t) (int-err "non-symbol methods not yet supported: ~a" t)])]
+    [(tc-result: t) (tc-error "send: expected a class, got ~a" t)]))
 
 ;; type-check a list of exprs, producing the type of the last one.
 ;; if the list is empty, the type is Void.

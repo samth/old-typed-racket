@@ -158,12 +158,14 @@
       [(id arg args ...)
        (let ([rator (parse-type #'id)]
              [args (map parse-type (syntax->list #'(arg args ...)))])
-         (cond
-           [(Name? rator)
+         (match rator
+           [(Name: _)
             (make-App rator args stx)]
-           [(Poly? rator)
+           [(Poly: ns _)
+            (unless (= (length args) (length ns))
+              (tc-error "Wrong number of arguments to type ~a, expected ~a but got ~a" rator (length ns) (length args)))
             (instantiate-poly rator args)]
-           [else (tc-error "Type ~a cannot be applied, arguments were: ~a" rator args)]))
+           [_ (tc-error "Type ~a cannot be applied, arguments were: ~a" rator args)]))
        #;
        (let ([ty (parse-type #'id)])
          #;(printf "ty is ~a" ty)

@@ -72,19 +72,20 @@
       ;; top-level type annotation
       [(#%plain-app void (quote-syntax (:-internal id ty)))
        (identifier? #'id)
-       (register-type #'id (parse-type #'ty))]
+       (register-type/undefined #'id (parse-type #'ty))]
       
       ;; values definitions
       [(define-values (var ...) expr)
        (let* ([vars (syntax->list #'(var ...))])
          (cond
            ;; if all the variables have types, we stick them into the environment
-           [(andmap (lambda (s) (syntax-property s 'type-label)) vars)            
+           [(andmap (lambda (s) (syntax-property s 'type-label)) vars)        
             (let ([ts (map get-type vars)])
               (for-each register-type vars ts)
               (map make-def-binding ts vars))]
            ;; if this already had an annotation, we just construct the binding reps
            [(andmap (lambda (s) (lookup-type s (lambda () #f))) vars)
+            (for-each finish-register-type vars)
             (map (lambda (s) (make-def-binding s (lookup-type s))) vars)]
            ;; special case to infer types for top level defines - should handle the multiple values case here
            [(and (= 1 (length vars)) 
@@ -213,6 +214,8 @@
     ;; separate the definitions into structures we'll handle for provides    
     (define stx-defs (filter def-stx-binding? defs))
     (define val-defs (filter def-binding? defs))
+    ;; check that declarations correspond to definitions
+    (check-all-registered-types)
     ;; typecheck the expressions and the rhss of defintions
     (for-each tc-toplevel/pass2 forms)
     ;; compute the new provides
@@ -228,7 +231,7 @@
 ;; used only from #%top-interaction
 ;; syntax -> void
 (define (tc-toplevel-form form)
-  (tc-toplevel/pass1 form)
+  (tc-toplevel/pass1 form)  
   (tc-toplevel/pass2 form))
 
 

@@ -55,7 +55,7 @@
     [(string? v) -String]
     [(keyword? v) -Keyword]
     [(bytes? v) -Bytes]
-    [(list? v) (make-Listof (types-of-literals v))]
+    [(list? v) (-Tuple (map tc-literal v))]
     [(vector? v) (make-Vector (types-of-literals (vector->list v)))]
     [(pregexp? v) -PRegexp]
     [(byte-pregexp? v) -Byte-PRegexp]

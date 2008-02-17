@@ -146,14 +146,6 @@
          (add-type-name-reference #'Parameter)
          (-Param (parse-type #'t1) (parse-type #'t2)))]
       
-      ;;[(All . rest) (eq? (syntax-e #'All) 'All) (tc-error "All: bad syntax")]
-      ;;[(Opaque . rest) (eq? (syntax-e #'Opaque) 'Opqaue) (tc-error "Opaque: bad syntax")]
-      ;;[(U . rest) (eq? (syntax-e #'U) 'U) (tc-error "Union: bad syntax")]
-      ;;[(Vectorof . rest) (eq? (syntax-e #'Vectorof) 'Vectorof) (tc-error "Vectorof: bad syntax")]
-      ;;[(mu . rest) (eq? (syntax-e #'mu) 'mu) (tc-error "mu: bad syntax")]
-      ;;[(Un . rest) (eq? (syntax-e #'Un) 'Un) (tc-error "Union: bad syntax")]
-      ;;[(t ... -> . rest) (eq? (syntax-e #'->) '->) (tc-error "->: bad syntax")]
-      
       [id
        (identifier? #'id)
        (cond 
@@ -171,6 +163,16 @@
           (make-Name #'id)]
          [else
           (tc-error "unbound type ~a" (syntax-e #'id))])]     
+
+      [(All . rest) (eq? (syntax-e #'All) 'All) (tc-error "All: bad syntax")]
+      [(Opaque . rest) (eq? (syntax-e #'Opaque) 'Opqaue) (tc-error "Opaque: bad syntax")]
+      [(U . rest) (eq? (syntax-e #'U) 'U) (tc-error "Union: bad syntax")]
+      [(Vectorof . rest) (eq? (syntax-e #'Vectorof) 'Vectorof) (tc-error "Vectorof: bad syntax")]
+      [(mu . rest) (eq? (syntax-e #'mu) 'mu) (tc-error "mu: bad syntax")]
+      [(Un . rest) (eq? (syntax-e #'Un) 'Un) (tc-error "Union: bad syntax")]
+      [(t ... -> . rest) (eq? (syntax-e #'->) '->) (tc-error "->: bad syntax")]
+      
+
       [(id arg args ...)
        (let ([rator (parse-type #'id)]
              [args (map parse-type (syntax->list #'(arg args ...)))])

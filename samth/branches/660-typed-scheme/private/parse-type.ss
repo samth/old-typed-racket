@@ -51,7 +51,8 @@
            (tc-error "Argument to Instance must be a class type, got ~a" v))
          (make-Instance v))]
       [(Tuple ts ...)
-       (eq? (syntax-e #'Tuple) 'Tuple)
+       (or (eq? (syntax-e #'Tuple) 'Tuple)
+           (eq? (syntax-e #'Tuple) 'List))
        (begin
          (add-type-name-reference (stx-car stx))
          (-Tuple (map parse-type (syntax->list #'(ts ...)))))]

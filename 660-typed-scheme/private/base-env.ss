@@ -534,7 +534,7 @@
   [Box (-poly (a) (make-Box a))]
   #;[Parameter -Param]
   ;; legacy abbreviations  
-  [list-of -Listof]
+  ;; [list-of -Listof]
   )
 
 (define-other-types

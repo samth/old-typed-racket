@@ -127,7 +127,10 @@
                 [body2 (local-expand #'(#%top-interaction . form) 'top-level null)]
                 ;[__ (do-time "Local Expand Done")]
                 ;; typecheck the body, and produce syntax-time code that registers types
-                [type (tc-toplevel-form body2)])
+                [type 
+                 (parameterize ([orig-module-stx #'form]
+                                [expanded-module-stx #'body2])
+                   (tc-toplevel-form body2))])
            ;(do-time "Typechecked")
            ;(printf "checked ~a~n" (syntax-property stx 'enclosing-module-name))
            (kernel-syntax-case body2 #f

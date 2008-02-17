@@ -70,7 +70,7 @@
                          (fp "'~a" v)]
                         [else (fp "~a" v)])]
       [(? tuple? t)
-       (fp "~a" (cons 'Tuple (tuple-elems t)))]
+       (fp "~a" (cons 'List (tuple-elems t)))]
       [(Base: n) (fp "~a" n)]      
       [(Opaque: pred _) (fp "(Opaque ~a)" (syntax-object->datum pred))]
       [(Struct: 'Promise par (list fld) proc) (fp "(Promise ~a)" fld)]      

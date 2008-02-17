@@ -28,6 +28,8 @@
     (define omodule (orig-module-stx))
     (define emodule (expanded-module-stx))
     ;(printf "orig: ~a~n" (syntax-object->datum omodule))
+    ;(printf "exp: ~a~n" (syntax-object->datum emodule))
+    ;(printf "stx: ~a~n" (syntax-object->datum stx))
     (look-for-in-orig omodule emodule stx))
   
   ;; produce a type error, using the current syntax
@@ -36,15 +38,6 @@
       (if (print-syntax?)
           (current-orig-stx)
           (locate-stx (current-orig-stx))))
-    #;
-    (define new-stx 
-      (cond 
-        [(or (print-syntax?)
-             (syntax-original? cur-stx)
-             (identifier? cur-stx))
-         cur-stx]
-        [(and (not (syntax-source cur-stx)) (find-origin cur-stx))]
-        [else (datum->syntax-object cur-stx (syntax-e (or (find-origin cur-stx) #'..)) cur-stx cur-stx)]))
     ;(printf "Aliases: ~a~n" ((current-type-names)))
     (raise-syntax-error 'typecheck (apply format msg rest) cur-stx cur-stx))
   

@@ -129,7 +129,7 @@
                 ;; typecheck the body, and produce syntax-time code that registers types
                 [type 
                  (parameterize ([orig-module-stx #'form]
-                                [expanded-module-stx #'body2])
+                                [expanded-module-stx body2])
                    (tc-toplevel-form body2))])
            ;(do-time "Typechecked")
            ;(printf "checked ~a~n" (syntax-property stx 'enclosing-module-name))

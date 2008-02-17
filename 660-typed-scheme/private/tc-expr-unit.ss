@@ -48,6 +48,7 @@
     (apply Un (map tc-literal es)))
   (define v (syntax-e v-stx))
   (cond
+    [(integer? v) -Integer]
     [(number? v) N]
     [(char? v) -Char]
     [(boolean? v) (-val v)]

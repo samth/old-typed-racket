@@ -37,7 +37,7 @@
       [(_ (n) __)
        (with-syntax ([cnt (type->contract typ (lambda () (tc-error/stx prop "Type ~a could not be converted to a contract." typ)))])
          (syntax/loc stx (define-values (n) cnt)))]
-      [_ (error 'bad)]))
+      [_ (error 'generate-contract-def "internal error")]))
   
   (define (remove-contract-fixups forms)
     (filter (lambda (e) (not (define/fixup-contract? e))) (syntax->list forms)))

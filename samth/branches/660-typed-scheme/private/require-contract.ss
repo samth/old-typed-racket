@@ -13,7 +13,7 @@
         #'(begin (define-values (n) e)
                  (define name e*))]
        [e #'(define name e)]
-       [s (error 'bad "bad: ~a" (syntax->datum #'s))])]))
+       [s (error 'define-ignored "internal error: ~e" (syntax->datum #'s))])]))
 
 (define-syntax (require/contract stx)
   (syntax-case stx ()

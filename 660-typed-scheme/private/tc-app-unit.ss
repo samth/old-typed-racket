@@ -157,6 +157,10 @@
                           (length arg-tys))
                        (infer/list (append (car doms*) (list (make-Listof (car rests*)))) arg-tys0 vars))
                   => (lambda (substitution) 
+                       (let* ([s (lambda (t) (subst-all substitution t))]
+                              [new-doms* (append (map s (car doms*)) (list (make-Listof (s (car rests*)))))])
+                         (unless (andmap subtype arg-tys0 new-doms*)
+                           (int-err "Inconsistent substitution - arguments not subtypes")))                         
                        (ret (subst-all substitution (car rngs*))))]
                  [else (loop (cdr doms*) (cdr rngs*) (cdr rests*))]))]
         [(tc-result: (Poly: vars (Function: '())))
@@ -222,6 +226,10 @@
                           (length argtypes))
                        (infer/list (car doms*) argtypes vars))
                   => (lambda (substitution)
+                       (let* ([s (lambda (t) (subst-all substitution t))]
+                              [new-doms* (map s (car doms*))])
+                         (unless (andmap subtype argtypes new-doms*)
+                           (int-err "Inconsistent substitution - arguments not subtypes")))
                        #;(printf "subst is:~a~nret is: ~a~nvars is: ~a~n" substitution (car rngs*) vars)
                        (ret (subst-all substitution (car rngs*))))]
                  [else (loop (cdr doms*) (cdr rngs*))]))]
@@ -234,7 +242,12 @@
            (tc-error "incorrect number of arguments to function: ~a ~a" dom argtypes))
          (let ([substitution (infer/list/vararg dom rest argtypes vars)])
            (if substitution
-               (ret (subst-all substitution rng))
+               (let* ([s (lambda (t) (subst-all substitution t))]
+                      [new-dom (map s dom)]
+                      [new-rest (s rest)])                                  
+                 (unless (subtypes/varargs argtypes new-dom new-rest)
+                   (int-err "Inconsistent substitution - arguments not subtypes"))
+                 (ret (subst-all substitution rng)))
                (tc-error "no polymorphic function domain matched - domain was: ~a rest type was: ~a arguments were ~a"
                          dom rest argtypes)))]
         [(tc-result: (Poly: vars (Function: (list (arr: doms rngs rests thn-effs els-effs) ...))))

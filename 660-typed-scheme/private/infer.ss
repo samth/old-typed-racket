@@ -30,7 +30,7 @@
 ;; conveneice function
 (define (alist->mapping vars) (table:alist->eq (map (lambda (x) (cons x 'fail)) vars)))
 
-;; flag is one of: 'co, 'contra, #f
+;; flag is one of: 'co, 'contra, 'both, #f
 
 ;; Mapping is a table that maps symbols to Results
 
@@ -61,13 +61,49 @@
 
 ;(trace mapping->subst)
 
+;; least upper bound of two flags
+;; the lattice is like this:
+;;         'both
+;;        /      \
+;;     'co      'contra
+;;        \      /
+;;           #f
+(define (lub a b)
+  (match (list a b)
+    [(list x  x)  x]
+    [(list #f x)  x]
+    [(list x  #f) x]
+    [(list 'both x) 'both]
+    [(list x 'both) 'both]
+    [(list x y) 'both]))
+
 ;; combine: flag -> Result Result -> Result
 ;; combine two results into one
-(define ((combine flag) s t)
+(define ((combine flag*) s t)
+  (define (type-lub s t)
+    (cond [(subtype s t) t]
+          [(subtype t s) s]
+          [else (fail! s t)]))
+  (define (type-glb s t)
+    (cond [(subtype s t) s]
+          [(subtype t s) t]
+          [else (fail! s t)]))
+  (define (go flag s t)
+    (cond [(and (eq? flag 'both) (type-equal? s t)) s]
+          [(eq? flag 'both) (fail! s t)]
+          [(eq? flag 'co) (type-lub s t)]
+          [(eq? flag 'contra) (type-glb s t)]
+          [(eq? flag #f) (go flag* s t)]
+          [else (int-err "bad flag value ~a" flag)]))
   (match (list s t)
     [(list 'fail t) t]
     [(list t 'fail) t]
     [(list (list sf s) (list tf t))
+     (let* ([flag (lub flag* (lub sf tf))]
+            [new-ty (go flag s t)])
+       (list flag new-ty))]))
+       #;
+     
      ;(printf "flags : ~a ~a~n" sf tf)
      (cond 
        [(and sf tf (type-equal? s t)) (list (if (eq? sf tf) sf 'both) s)] ;; equal is fine
@@ -75,12 +111,12 @@
        [(and sf tf (not (eq? sf tf))) (fail! s t)] ;; not equal, needed to be
        [else
         (let ([flag (or sf tf flag)])
-          ;(printf "flag is ~a~n" flag)
+          (printf "flag is ~a~n" flag)
           (cond 
             [(eq? 'co flag) (list 'co (Un s t))]
             [(and (eq? 'contra flag) (subtype s t)) (list 'contra s)]
             [(and (eq? 'contra flag) (subtype t s)) (list 'contra t)]
-            [else (fail! s t)]))])]))
+            [else (fail! s t)]))])
 
 
 ;(trace combine)
@@ -152,6 +188,8 @@
 (define (swap flag) (case flag
                       [(co) 'contra]
                       [(contra) 'co]
+                      [(both) 'both]
+                      [(start) 'start]
                       [else (int-err "bad flag: ~a" flag)]))
 
 (define (co? x) (eq? x 'co))
@@ -184,9 +222,10 @@
              ['fail 
               (cond [(and (eq? flag 'contra) (type-equal? Univ t)) mapping]
                     [(and (eq? flag 'co) (type-equal? (Un) t)) mapping]
-                    [else (table:insert v (list flag t) mapping)])]
+                    [else 
+                     (table:insert v (list #f t) mapping)])]
              ;; we are ignoring this variable, but they weren't the same
-             [#f (fail!)] 
+             [#f (fail!)]
              ;; this variable has already been unified
              [(list cur-flag cur-t)
               (cond
@@ -210,6 +249,10 @@
                    ;; this is a supertype of what we found before
                    [(and (eq? flag 'contra) (subtype t cur-t))
                     (table:insert v (list flag cur-t) mapping)]
+                   [(and (eq? flag 'both) (subtype t cur-t) (subtype cur-t t))
+                    mapping]
+                   [(eq? flag 'both)
+                    (fail! cur-t t)]
                    ;; impossible
                    [else (int-err "bad flag value: ~a" flag)])]
                 ;; we've switched directions at least once

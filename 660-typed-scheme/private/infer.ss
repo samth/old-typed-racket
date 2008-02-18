@@ -68,7 +68,7 @@
     [(list 'fail t) t]
     [(list t 'fail) t]
     [(list (list sf s) (list tf t))
-     (printf "flags : ~a ~a~n" sf tf)
+     ;(printf "flags : ~a ~a~n" sf tf)
      (cond 
        [(and sf tf (type-equal? s t)) (list (if (eq? sf tf) sf 'both) s)] ;; equal is fine
        [(memq 'both (list sf tf)) (fail! s t)] ;; not equal, needed to be
@@ -181,7 +181,10 @@
          (let ([cur (table:lookup v mapping)])
            (match cur
              ;; we haven't yet seen this variable
-             ['fail (table:insert v (list flag t) mapping)]
+             ['fail 
+              (cond [(and (eq? flag 'contra) (type-equal? Univ t)) mapping]
+                    [(and (eq? flag 'co) (type-equal? (Un) t)) mapping]
+                    [else (table:insert v (list flag t) mapping)])]
              ;; we are ignoring this variable, but they weren't the same
              [#f (fail!)] 
              ;; this variable has already been unified
@@ -358,7 +361,7 @@
 ;; infer/list: Listof[Type] Listof[Type] List[Symbol] -> Substitution
 (define infer/list (mk-infer infer/int/list))
 
-(trace infer/int/list infer/int infer/list)
+;(trace infer/int/list infer/int infer/list)
 
 
 

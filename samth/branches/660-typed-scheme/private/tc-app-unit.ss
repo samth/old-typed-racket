@@ -16,19 +16,20 @@
          "type-effect-printer.ss"
          "type-annotation.ss"
          "resolve-type.ss"
-         (only-in scheme/private/class-internal make-object do-make-object)
+         (only-in scheme/private/class-internal make-object #;do-make-object)
          (lib "pretty.ss")
          (lib "trace.ss")
          (lib "kerncase.ss" "syntax"))
 
 (require (for-template (lib "plt-match.ss") "internal-forms.ss" scheme/base 
-                       (only-in scheme/private/class-internal make-object do-make-object)))
+                       (only-in scheme/private/class-internal make-object #;do-make-object)))
 (require (for-syntax (lib "plt-match.ss") "internal-forms.ss"))
 
 
 (import tc-expr^ tc-lambda^)
 (export tc-app^)
 
+(define do-make-object void)
 
 ;; comparators that inform the type system
 (define (comparator? i)

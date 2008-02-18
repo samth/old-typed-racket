@@ -112,7 +112,7 @@
 ;; infer/int/list/eff : Listof[Effect] Listof[Effect] Mapping Flag -> Mapping
 (define (infer/int/list/eff ss ts mapping flag)
   (unless (= (length ss) (length ts))
-    (error 'bad ss ts)
+    (error 'infer/int/list/eff "internal error: ~e ~e" ss ts)
     (fail! ss ts))
   (let ([l (map (lambda (x y) (infer/int/eff x y mapping flag)) ss ts)])
     (foldl (table:un flag) (table:make-eq) l)))

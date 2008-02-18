@@ -3,6 +3,7 @@
 (require "unify.ss" "type-comparison.ss" "type-rep.ss" "effect-rep.ss" "subtype.ss"
          "planet-requires.ss" "tc-utils.ss" "union.ss"
          "resolve-type.ss"
+         "type-effect-convenience.ss"
          (lib "trace.ss")
          (lib "plt-match.ss")
          (lib "list.ss"))
@@ -67,7 +68,7 @@
     [(list 'fail t) t]
     [(list t 'fail) t]
     [(list (list sf s) (list tf t))
-     ;(printf "flags : ~a ~a~n" sf tf)
+     (printf "flags : ~a ~a~n" sf tf)
      (cond 
        [(and sf tf (type-equal? s t)) (list (if (eq? sf tf) sf 'both) s)] ;; equal is fine
        [(memq 'both (list sf tf)) (fail! s t)] ;; not equal, needed to be
@@ -111,11 +112,12 @@
 
 ;; infer/int/list/eff : Listof[Effect] Listof[Effect] Mapping Flag -> Mapping
 (define (infer/int/list/eff ss ts mapping flag)
-  (unless (= (length ss) (length ts))
-    (error 'infer/int/list/eff "internal error: ~e ~e" ss ts)
-    (fail! ss ts))
-  (let ([l (map (lambda (x y) (infer/int/eff x y mapping flag)) ss ts)])
-    (foldl (table:un flag) (table:make-eq) l)))
+  (cond [(or (null? ss) (null? ts)) mapping]        
+        [(not (= (length ss) (length ts)))
+         ;(error 'bad "~a ~a" ss ts)
+         (fail! ss ts)]
+        [else (let ([l (map (lambda (x y) (infer/int/eff x y mapping flag)) ss ts)])
+                (foldl (table:un flag) (table:make-eq) l))]))
 
 
 ;; infer/int/list/vararg : Listof[Type] Type Listof[Type] Mapping Flag Boolean -> Mapping
@@ -356,7 +358,7 @@
 ;; infer/list: Listof[Type] Listof[Type] List[Symbol] -> Substitution
 (define infer/list (mk-infer infer/int/list))
 
-;(trace infer/int/list infer/int infer/list)
+(trace infer/int/list infer/int infer/list)
 
 
 

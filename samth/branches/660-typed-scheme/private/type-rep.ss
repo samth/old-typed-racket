@@ -100,6 +100,10 @@
                         (map effect-rec-id thn-eff)
                         (map effect-rec-id els-eff))])
   
+  ;; top-arr is the supertype of all function types
+  (dt top-arr ()
+      [#:frees #f] [#:fold-rhs #:base])
+  
   ;; arities : Listof[arr]
   (dt Function (arities) [#:frees (combine-frees (map free-vars* arities))
                                   (combine-frees (map free-idxs* arities))]

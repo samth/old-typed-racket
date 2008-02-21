@@ -124,7 +124,7 @@
           [(Mu: _ _) (loop (unfold expected))]
           [(Function: (list (arr: args ret rest _ _))) 
            (tc/lambda-clause/check (car (syntax->list formals)) (car (syntax->list bodies)) args ret rest)]
-          [_ (int-err "Expected a function type, got ~a" expected)]))
+          [t (tc-error "Expected a ~a but got a function" expected)]))
       (let loop ([formals (syntax->list formals)] 
                  [bodies (syntax->list bodies)]
                  [formals* null]

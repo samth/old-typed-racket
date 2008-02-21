@@ -138,7 +138,7 @@
      [symbol? (make-pred-ty Sym)]
      [list? (make-pred-ty (-lst Univ))]
      [list (-poly (a) (->* '() a (-lst a)))]
-     [procedure? (make-pred-ty (->* '() (Un) Univ))]
+     [procedure? (make-pred-ty (make-Function (list (make-top-arr))))]
      [map 
       (-poly (a b c d)
              (cl-> [((-> a b) (-lst a)) (-lst b)]

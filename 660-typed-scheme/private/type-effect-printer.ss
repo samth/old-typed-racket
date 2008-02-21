@@ -44,6 +44,19 @@
   ;; print-type : Type Port Boolean -> Void
   (define (print-type c port write?)
     (define (fp . args) (apply fprintf port args)) 
+    (define (print-arr a)
+      (match a
+        [(top-arr:)
+         (fp "Procedure")]
+        [(arr: dom rng rest thn-eff els-eff)
+         (fp "(")
+         (for-each (lambda (t) (fp "~a " t)) dom)
+         (when rest
+           (fp "~a .. " rest))
+         (fp "-> ~a" rng)
+         (unless (and (null? thn-eff) (null? els-eff))
+           (fp " : ~a ~a" thn-eff els-eff))
+         (fp ")")]))
     (define (tuple? t)
       (match t
         [(Pair: a (? tuple?)) #t]
@@ -80,22 +93,12 @@
           (fp " ~a" proc))
         (fp ")")]
       [(Function: arities)
-       (let ()
-         (define (print-arr a)
-           (match a
-             [(arr: dom rng rest thn-eff els-eff)
-              (fp "(")
-              (for-each (lambda (t) (fp "~a " t)) dom)
-              (when rest
-                (fp "~a .. " rest))
-              (fp "-> ~a" rng)
-              (unless (and (null? thn-eff) (null? els-eff))
-                (fp " : ~a ~a" thn-eff els-eff))
-              (fp ")")]))
+       (let ()         
          (match arities
            [(list) (fp "(case-lambda)")]
            [(list a) (print-arr a)]
-           [(list a ...) (fp "(case-lambda ") (for-each print-arr a) (fp ")")]))]      
+           [(list a ...) (fp "(case-lambda ") (for-each print-arr a) (fp ")")]))]
+      [(arr: _ _ _ _ _) (print-arr c)]
       [(Vector: e) (fp "(Vectorof ~a)" e)]
       [(Box: e) (fp "(Box ~a)" e)]
       [(Union: elems) (fp "~a" (cons 'U elems))]

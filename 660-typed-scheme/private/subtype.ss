@@ -97,6 +97,8 @@
   (with-handlers
       ([exn:subtype? (lambda _ #f)])
     (match (list s t)
+      ;; top for functions is above everything
+      [(list _ (top-arr:)) A0]
       [(list (arr: s1 s2 #f thn-eff els-eff) (arr: t1 t2 #f (or '() thn-eff) (or '() els-eff)))
        (let ([A1 (subtypes* A0 t1 s1)])
          (subtype* A1 s2 t2))]
@@ -114,7 +116,8 @@
              (subtype* A s2 t2)
              (let ([A1 (subtype* A t3 s3)])
                (subtype* A1 s2 t2))))]
-      [else (fail! s t)])))
+      [else 
+       (fail! s t)])))
 
 (define (subtypes/varargs args dom rst)
   (with-handlers
@@ -123,7 +126,6 @@
 
 (define (subtypes*/varargs A0 argtys dom rst)
   (let loop-varargs ([dom dom] [argtys argtys] [A A0])
-    (define (succ A) A)
     (cond
       [(and (null? dom) (null? argtys)) A]
       [(null? argtys) (fail! argtys dom)]
@@ -133,6 +135,8 @@
       [(null? dom) (fail! argtys dom)]
       [(subtype* A (car argtys) (car dom)) => (lambda (A) (loop-varargs (cdr dom) (cdr argtys) A))]
       [else (fail! (car argtys) (car dom))])))
+
+;(trace subtypes*/varargs)
 
 
 ;; the algorithm for recursive types transcribed directly from TAPL, pg 305

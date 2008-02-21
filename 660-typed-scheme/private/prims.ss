@@ -138,19 +138,19 @@ This file defines two sorts of primitives. All of them are provided into any mod
   (let ([stx*
          ;; make it possible to add another colon after the id for clarity
          (syntax-case stx (:)
-           [(: id : . more) #'(: id . more)]
+           [(: id : . more) (syntax/loc stx (: id . more))]
            [_ stx])])
     (syntax-case stx* ()
       [(_ id ty)
        (identifier? #'id)
-       #'(#%plain-app void (quote-syntax (:-internal id ty)))]
+       (syntax/loc stx* (#%plain-app void (quote-syntax (:-internal id ty))))]
       [(_ id ty)
-       (raise-syntax-error #f "can only annotate identifiers with types"
+       (raise-syntax-error '|type declaration| "can only annotate identifiers with types"
                            stx #'id)]
       [(_ _ _ _ . _)
-       (raise-syntax-error #f "too many arguments" stx)]
+       (raise-syntax-error '|type declaration| "too many arguments" stx)]
       [(_ _)
-       (raise-syntax-error #f "too few arguments" stx)])))
+       (raise-syntax-error '|type declaration| "too few arguments" stx)])))
 
 (define-syntax (inst stx)
   (syntax-case stx (:)

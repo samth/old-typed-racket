@@ -105,7 +105,7 @@
          (make-Vector (parse-type #'t)))]
       [(mu x t) 
        (and (identifier? #'x)
-            (eq? (syntax-e #'mu) 'mu)
+            (memq (syntax-e #'mu) '(mu Rec))
             (enable-mu-parsing))
        (let* ([var (syntax-e #'x)]
               [tvar (make-F var)])

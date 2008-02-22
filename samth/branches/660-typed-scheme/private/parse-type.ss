@@ -175,8 +175,9 @@
       
 
       [(id arg args ...)
-       (let ([rator (parse-type #'id)]
-             [args (map parse-type (syntax->list #'(arg args ...)))])
+       (let loop 
+         ([rator (parse-type #'id)]
+          [args (map parse-type (syntax->list #'(arg args ...)))])
          (match rator
            [(Name: _)
             (make-App rator args stx)]
@@ -184,6 +185,7 @@
             (unless (= (length args) (length ns))
               (tc-error "Wrong number of arguments to type ~a, expected ~a but got ~a" rator (length ns) (length args)))
             (instantiate-poly rator args)]
+           [(Mu: _ _) (loop (unfold rator) args)]
            [_ (tc-error "Type ~a cannot be applied, arguments were: ~a" rator args)]))
        #;
        (let ([ty (parse-type #'id)])

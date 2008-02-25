@@ -383,7 +383,8 @@
        [(tc-result: t thn-eff els-eff)
         (ret B (map var->type-eff els-eff) (map var->type-eff thn-eff))])]
     ;; special case for `apply'
-    [(#%plain-app apply f . args) (tc/apply #'f #'args)]    
+    [(#%plain-app apply f . args) (tc/apply #'f #'args)]
+    
     ;; even more special case for match
     [(#%plain-app 
       (letrec-values 
@@ -392,7 +393,7 @@
                        thn
                        els))])
         lp*)
-      actual1 actuals ...)
+      actual actuals ...)
      (and ;(printf "got here 0:~a~n" (syntax->datum #'body))
           expected
           ;(printf "got here 1~n")
@@ -409,7 +410,8 @@
               (andmap free-identifier=? (syntax->list #'(acc ...)) acc*)
               (free-identifier=? #'lp #'lp*))]
             [_ #f]))
-     (let* ([ts1 (tc-expr/t #'actual1)]
+     (let* ([ts1 (tc-expr/t #'actual)]
+            [ts1 (generalize ts1)]
             [ann-ts (map (lambda (a) (find-annotation #'(if (#%plain-app null? val*) thn els) a)) 
                          (syntax->list #'(acc ...)))]
             [ts (cons ts1 ann-ts)])                 
@@ -444,6 +446,5 @@
      (begin
        ;(printf "default case~n~a~n" (syntax->datum form))
        (tc/funapp #'f #'(args ...) (tc-expr #'f) (map tc-expr (syntax->list #'(args ...)))))]))
-
-
+  
 ;(trace tc/app/internal)

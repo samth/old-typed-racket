@@ -212,6 +212,22 @@
                                    e))
                                ty)]))
                   (syntax->list #'(e ...))))]))
+  
+  ;; if t is of the form (Pair t* (Pair t* ... (Listof t*)))
+  ;; return t*
+  ;; otherwise, return t
+  ;; generalize : Type -> Type
+  (define (generalize t)
+    (let/ec exit
+      (let loop ([t* t])
+        (match t*
+          [(Mu: var (Union: (list (Value: '()) (Pair: _ (F: var))))) t*]
+          [(Pair: t1 t2)
+           (let ([t-new (loop t2)])
+             (if (type-equal? (-lst t1) t-new)
+                 t-new
+                 (exit t)))]
+          [_ (exit t)]))))
 
   
   )

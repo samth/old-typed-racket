@@ -34,13 +34,17 @@
       [(fst . rst)
        (not (syntax->list #'rst))
        (-pair (parse-type #'fst) (parse-type #'rst))]
-      [(Class (pos-args ...) ([fname fty] ...) ([mname mty] ...))
+      [(Class (pos-args ...) ([fname fty . rest] ...) ([mname mty] ...))
        (eq? (syntax-e #'Class) 'Class)
        (make-Class
         (map parse-type (syntax->list #'(pos-args ...)))
         (map list
              (map syntax-e (syntax->list #'(fname ...)))
-             (map parse-type (syntax->list #'(fty ...))))
+             (map parse-type (syntax->list #'(fty ...)))
+             (map (lambda (e) (syntax-case e ()
+                                [(#t) #t]
+                                [_ #f]))
+                  (syntax->list #'(rest ...))))
         (map list
              (map syntax-e (syntax->list #'(mname ...)))
              (map parse-type (syntax->list #'(mty ...)))))]
@@ -163,7 +167,17 @@
           (add-type-name-reference #'id)
           (make-Name #'id)]
          [else
-          (tc-error "unbound type ~a" (syntax-e #'id))])]     
+          (tc-error/stx #'id "unbound type ~a" (syntax-e #'id))])]     
+
+      [(All . rest) (eq? (syntax-e #'All) 'All) (tc-error "All: bad syntax")]
+      [(Opaque . rest) (eq? (syntax-e #'Opaque) 'Opqaue) (tc-error "Opaque: bad syntax")]
+      [(U . rest) (eq? (syntax-e #'U) 'U) (tc-error "Union: bad syntax")]
+      [(Vectorof . rest) (eq? (syntax-e #'Vectorof) 'Vectorof) (tc-error "Vectorof: bad syntax")]
+      [(mu . rest) (eq? (syntax-e #'mu) 'mu) (tc-error "mu: bad syntax")]
+      [(Un . rest) (eq? (syntax-e #'Un) 'Un) (tc-error "Union: bad syntax")]
+      [(t ... -> . rest) (eq? (syntax-e #'->) '->) (tc-error "->: bad syntax")]
+      
+
 
       [(All . rest) (eq? (syntax-e #'All) 'All) (tc-error "All: bad syntax")]
       [(Opaque . rest) (eq? (syntax-e #'Opaque) 'Opqaue) (tc-error "Opaque: bad syntax")]

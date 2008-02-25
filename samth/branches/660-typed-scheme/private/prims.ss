@@ -67,25 +67,31 @@ This file defines two sorts of primitives. All of them are provided into any mod
                             #,(syntax-property #'(require/contract nm cnt* lib)
                                                'typechecker:ignore #t)))]
     [(_ (rename internal-nm nm) ty lib)
+     (raise-syntax-error "rename not currently supported" stx)
+     #; #;
      (identifier? #'nm)
-     ;; b/c we parse this here, we can't use types defined in this module
-     (with-syntax ([cnt (type->contract (parse-type/id #'nm #'ty))])
-       (quasisyntax/loc stx (begin (#%app void (quote-syntax (require/typed-internal nm ty)))
-                                   #,(syntax-property #'(require/contract nm cnt lib)
-                                                      'typechecker:ignore #t))))]))      
+     (quasisyntax/loc stx (begin 
+                            #,(syntax-property (syntax-property #'(define cnt* #f)
+                                                                'typechecker:contract-def #'ty)
+                                               'typechecker:ignore #t)
+                            (#%app void (quote-syntax (require/typed-internal internal-nm ty)))
+                            #,(syntax-property #'(require/contract nm cnt* lib)
+                                               'typechecker:ignore #t)))]))      
 
 (define-syntax (require/opaque-type stx)
   (syntax-case stx ()
     [(_ ty pred lib)
      (and (identifier? #'ty) (identifier? #'pred))
-     (with-syntax ([pred-cnt #'(any/c . c-> . boolean?)])
-       (begin
-         (register-type-name #'ty (make-Opaque #'pred (syntax-local-certifier)))
-         (quasisyntax/loc stx
-           (begin (#%app void (quote-syntax (require/typed-internal pred (Any -> Boolean : (Opaque pred)))))
-                  (define-type-alias ty (Opaque pred))
-                  #,(syntax-property #'(require/contract pred pred-cnt lib)
-                                     'typechecker:ignore #t)))))]))
+     (begin
+       (register-type-name #'ty (make-Opaque #'pred (syntax-local-certifier)))
+       (quasisyntax/loc stx
+         (begin 
+           #,(syntax-property #'(define pred-cnt (any/c . c-> . boolean?))
+                              'typechecker:ignore #t)
+           (#%app void (quote-syntax (require/typed-internal pred (Any -> Boolean : (Opaque pred)))))
+           (define-type-alias ty (Opaque pred))
+           #,(syntax-property #'(require/contract pred pred-cnt lib)
+                              'typechecker:ignore #t))))]))
 
 (define-for-syntax (types-of-formals stx src)
   (syntax-case stx (:)

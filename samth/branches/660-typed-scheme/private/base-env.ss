@@ -5,6 +5,7 @@
                        CSU660/utils
                        '#%paramz
                        scheme/promise
+                       string-constants/string-constant
                        #;'#%more-scheme
                        #;'#%qq-and-or
                        (lib "match-error.ss" "mzlib" "private" "match"))
@@ -22,6 +23,7 @@
  "type-effect-convenience.ss"
  (only-in "type-effect-convenience.ss" [make-arr* make-arr])
  "union.ss"
+ string-constants/string-constant
  (lib "match-error.ss" "mzlib" "private" "match")
  "tc-structs.ss")
 
@@ -33,6 +35,7 @@
           "type-effect-convenience.ss"
           (only-in "type-effect-convenience.ss" [make-arr* make-arr])
           "union.ss"
+          string-constants/string-constant
           (lib "match-error.ss" "mzlib" "private" "match")
           "tc-structs.ss"))
 
@@ -135,6 +138,7 @@
      [empty? (make-pred-ty (-val null))]
      [empty (-val null)]
      [string? (make-pred-ty -String)]
+     [string (->* '() -Char -String)]
      [symbol? (make-pred-ty Sym)]
      [list? (make-pred-ty (-lst Univ))]
      [list (-poly (a) (->* '() a (-lst a)))]
@@ -401,15 +405,21 @@
                  [(-Input-Port Sym) -String])]
      [copy-file (-> -Pathlike -Pathlike -Void)]  
      [bytes->string/utf-8 (-> -Bytes -String)]
+     ;; language
+     [(expand #'(this-language))
+      Sym
+      string-constants/string-constant]
      ;; make-promise 
      
-     [(cadr (syntax->list (expand #'(delay 3)))) (-poly (a) (-> (-> a) (-Promise a)))]
+     [(cadr (syntax->list (expand #'(delay 3)))) 
+      (-poly (a) (-> (-> a) (-Promise a)))]
      ;; qq-append
      
-     [(cadr (syntax->list (expand #'`(,@'() 1)))) (-poly (a b) 
-                                                       (cl->*
-                                                        (-> (-lst a) (-val '()) (-lst a))
-                                                        (-> (-lst a) (-lst b) (-lst (*Un a b)))))]
+     [(cadr (syntax->list (expand #'`(,@'() 1)))) 
+      (-poly (a b) 
+             (cl->*
+              (-> (-lst a) (-val '()) (-lst a))
+              (-> (-lst a) (-lst b) (-lst (*Un a b)))))]
      
      [force (-poly (a) (-> (-Promise a) a))]
      [bytes<? (->* (list -Bytes) -Bytes B)]

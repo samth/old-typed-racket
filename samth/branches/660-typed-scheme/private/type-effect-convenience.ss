@@ -198,17 +198,19 @@
                       [(nm ty)
                        (identifier? #'nm)
                        #`(list  #'nm ty)]
-                      [(e ty)
+                      [(e ty extra-mods ...)
                        #'(list (let ([new-ns
-                                      (let ([ns (make-empty-namespace)])
-                                        (namespace-attach-module (current-namespace)
+                                      (let* ([x (current-namespace)]
+                                             [ns (make-empty-namespace)])
+                                        (namespace-attach-module x
                                                                  'scheme/base 
                                                                  ns)
-                                        (namespace-attach-module (current-namespace)
+                                        (namespace-attach-module x
                                                                  'scheme/promise 
-                                                                 ns)
+                                                                 ns)                                         
                                         ns)])
                                  (parameterize ([current-namespace new-ns])
+                                   (namespace-require 'extra-mods) ...
                                    e))
                                ty)]))
                   (syntax->list #'(e ...))))]))

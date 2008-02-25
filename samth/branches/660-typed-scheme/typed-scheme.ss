@@ -21,6 +21,7 @@
           "private/effect-rep.ss"
           "private/rep-utils.ss"
           "private/type-contract.ss"
+          "private/nest.ss"
           syntax/kerncase
           mzlib/list
           mzlib/plt-match))
@@ -52,110 +53,98 @@
   (with-logging-to-file 
    (log-file-name (syntax-src stx) module-name)
    (syntax-case stx ()
-     ((mb forms ...)
-      (begin
-        (set-box! typed-context? #t)
-        (start-timing module-name)
-        (call-with-exception-handler
-         (lambda (e)
-           (if (and catch-errors? (exn:fail? e) (not (exn:fail:syntax? e)))
-               (with-handlers ([values values])
-                 (tc-error "Internal error: ~a" e))
-               e))
-         (lambda ()
-           (parameterize (;; this paramter is for parsing types
+     [(mb forms ...)
+      (nest
+          ([begin (set-box! typed-context? #t)
+                  (start-timing module-name)]
+           [with-handlers
+               ([(lambda (e) (and catch-errors? (exn:fail? e) (not (exn:fail:syntax? e))))
+                 (lambda (e) (tc-error "Internal error: ~a" e))])]
+           [parameterize (;; this parameter is for parsing types
                           [current-tvars initial-tvar-env]
                           ;; this parameter is just for printing types
                           ;; this is a parameter to avoid dependency issues
                           [current-type-names
-                           (lambda () 
+                           (lambda ()
                              (append 
                               (type-name-env-map (lambda (id ty)
                                                    (cons (syntax-e id) ty)))
                               (type-alias-env-map (lambda (id ty)
                                                     (cons (syntax-e id) ty)))))]
                           ;; reinitialize seen type variables
-                          [type-name-references null])
-             (do-time "Initialized Envs")
-             (with-syntax* (;; local-expand the module
-                            ;; pmb = #%plain-module-begin
-                            [new-mod 
-                             (local-expand #`(#%plain-module-begin 
-                                              forms ...)
-                                           'module-begin 
-                                           null
-                                           #;stop-list)]
-                            [(pmb body2 ...) #'new-mod]
-                            [__ (do-time "Local Expand Done")]
-                            ;; typecheck the body, and produce syntax-time code that registers types
-                            [(before-code after-code) 
-                             (parameterize ([orig-module-stx stx]
-                                            [expanded-module-stx #'new-mod])
-                               (type-check #'(body2 ...)))]
-                            [check-syntax-help (syntax-property #'(void) 'disappeared-use (type-name-references))]
-                            [(transformed-body ...) (remove-provides #'(body2 ...))]
-                            [(transformed-body ...) (remove-contract-fixups #'(transformed-body ...))])
-               (do-time "Typechecked")
-               (printf "checked ~a~n" module-name)
-               #;(printf "created ~a types~n" (count!))
-               #;(printf "tried to create ~a types~n" (all-count!))
-               #;(printf "created ~a union types~n" (union-count!))
-               ;; reconstruct the module with the extra code
-               #'(#%module-begin before-code transformed-body ... after-code check-syntax-help))))))))))
+                          [type-name-references null])]
+           [begin (do-time "Initialized Envs")]
+           ;; local-expand the module
+           ;; pmb = #%plain-module-begin                            
+           [with-syntax ([new-mod 
+                          (local-expand #`(#%plain-module-begin 
+                                           forms ...)
+                                        'module-begin 
+                                        null
+                                        #;stop-list)])]
+           [with-syntax ([(pmb body2 ...) #'new-mod])]
+           [begin (do-time "Local Expand Done")]
+           [with-syntax ([after-code (parameterize ([orig-module-stx stx]
+                                                    [expanded-module-stx #'new-mod])
+                                       (type-check #'(body2 ...)))]
+                         [check-syntax-help (syntax-property #'(void) 'disappeared-use (type-name-references))]
+                         [(transformed-body ...) (remove-provides #'(body2 ...))])]
+           [with-syntax ([(transformed-body ...) (change-contract-fixups #'(transformed-body ...))])])
+        (do-time "Typechecked")
+        (printf "checked ~a~n" module-name)
+        #;(printf "created ~a types~n" (count!))
+        #;(printf "tried to create ~a types~n" (all-count!))
+        #;(printf "created ~a union types~n" (union-count!))
+        ;; reconstruct the module with the extra code
+        #'(#%module-begin transformed-body ... after-code check-syntax-help))])))
 
 (define-syntax (top-interaction stx)
   (syntax-case stx ()
     [(_ . (module . rest))
      (eq? 'module (syntax-e #'module))
      #'(module . rest)]
-    ((_ . form)
-     (begin
-       (set-box! typed-context? #t)
-       (parameterize (;; this paramter is for parsing types
-                      [current-tvars initial-tvar-env]
-                      ;; this parameter is just for printing types
-                      ;; this is a parameter to avoid dependency issues
-                      [current-type-names
-                       (lambda () 
-                         (append 
-                          (type-name-env-map (lambda (id ty)
-                                               (cons (syntax-e id) ty)))
-                          (type-alias-env-map (lambda (id ty)
-                                                (cons (syntax-e id) ty)))))])       
+    [(_ . form)     
+     (nest
+         ([begin (set-box! typed-context? #t)]
+          [parameterize (;; this paramter is for parsing types
+                         [current-tvars initial-tvar-env]
+                         ;; this parameter is just for printing types
+                         ;; this is a parameter to avoid dependency issues
+                         [current-type-names
+                          (lambda () 
+                            (append 
+                             (type-name-env-map (lambda (id ty)
+                                                  (cons (syntax-e id) ty)))
+                             (type-alias-env-map (lambda (id ty)
+                                                   (cons (syntax-e id) ty)))))])]
          ;(do-time "Initialized Envs")
-         (let* (;; local-expand the module
-                [body2 (local-expand #'(#%top-interaction . form) 'top-level null)]
-                ;[__ (do-time "Local Expand Done")]
-                ;; typecheck the body, and produce syntax-time code that registers types
-                [type 
-                 (parameterize ([orig-module-stx #'form]
-                                [expanded-module-stx body2])
-                   (tc-toplevel-form body2))])
-           ;(do-time "Typechecked")
-           ;(printf "checked ~a~n" (syntax-property stx 'enclosing-module-name))
-           (kernel-syntax-case body2 #f
-             [(head . _)
-              (or (free-identifier=? #'head #'define-values)
-                  (free-identifier=? #'head #'define-syntaxes)
-                  (free-identifier=? #'head #'require)
-                  (free-identifier=? #'head #'provide)
-                  (free-identifier=? #'head #'begin))
-              body2]
-             ;; reconstruct the module with the extra code
-             [_ (with-syntax ([b body2]
-                              [ty-str (match type
-                                        [(tc-result: (? (lambda (e) (equal? e -Void))) thn els)
-                                         #f]
-                                        [(tc-result: t thn els)
-                                         (format "- : ~a\n" t)]
-                                        [(? void?) #f]
-                                        [x (error 'internal-typechecker "bad type result: ~a" x)])])                    
-                  (if (not (syntax-e #'ty-str))
-                      #'b
-                      #`(let ([v b] [type 'ty-str])
-                          (begin0 
-                            v
-                            (printf type)))))])))))))
+          ;; local-expand the module
+          [let ([body2 (local-expand #'(#%top-interaction . form) 'top-level null)])]
+          [parameterize ([orig-module-stx #'form]
+                         [expanded-module-stx body2])]
+          ;; typecheck the body, and produce syntax-time code that registers types
+          [let ([type (tc-toplevel-form body2)])])
+       (kernel-syntax-case body2 #f
+         [(head . _)
+          (or (free-identifier=? #'head #'define-values)
+              (free-identifier=? #'head #'define-syntaxes)
+              (free-identifier=? #'head #'require)
+              (free-identifier=? #'head #'provide)
+              (free-identifier=? #'head #'begin)
+              (type-equal? -Void (tc-result-t type)))
+          body2]
+         ;; construct code to print the type
+         [_           
+          (nest
+              ([with-syntax ([b body2]
+                             [ty-str (match type
+                                       [(tc-result: t)
+                                        (format "- : ~a\n" t)]
+                                       [x (int-err "bad type result: ~a" x)])])])
+            #`(let ([v b] [type 'ty-str])
+                (begin0 
+                  v
+                  (printf type))))]))]))
 
 
 

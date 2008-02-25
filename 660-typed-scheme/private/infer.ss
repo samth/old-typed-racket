@@ -83,7 +83,7 @@
   (define (type-lub s t)
     (cond [(subtype s t) t]
           [(subtype t s) s]
-          [else (fail! s t)]))
+          [else (Un s t)]))
   (define (type-glb s t)
     (cond [(subtype s t) s]
           [(subtype t s) t]
@@ -140,7 +140,6 @@
 
 ;; infer/int/list : Listof[Type] Listof[Type] Mapping Flag -> Mapping
 (define (infer/int/list ss ts mapping flag)
-  ;(printf "infer/int/list ~a ~a ~n" ss ts)
   (unless (= (length ss) (length ts))
     (fail! ss ts))
   (let ([l (map (lambda (x y) (infer/int x y mapping flag)) ss ts)])
@@ -404,7 +403,7 @@
 ;; infer/list: Listof[Type] Listof[Type] List[Symbol] -> Substitution
 (define infer/list (mk-infer infer/int/list))
 
-;(trace infer/int/list infer/int infer/list)
+;(trace infer infer/int/list infer/int infer/list)
 
 
 

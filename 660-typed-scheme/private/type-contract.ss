@@ -1,6 +1,6 @@
 (module type-contract mzscheme
   
-  (provide type->contract define/fixup-contract? generate-contract-def remove-contract-fixups)
+  (provide type->contract define/fixup-contract? generate-contract-def change-contract-fixups)
   
   (require
    "type-rep.ss"   
@@ -39,8 +39,12 @@
          (syntax/loc stx (define-values (n) cnt)))]
       [_ (int-err "should never happen - not a define-values: ~a" (syntax-object->datum stx))]))
   
-  (define (remove-contract-fixups forms)
-    (filter (lambda (e) (not (define/fixup-contract? e))) (syntax->list forms)))
+  (define (change-contract-fixups forms)
+    (map (lambda (e)
+           (if (not (define/fixup-contract? e))
+               e
+               (generate-contract-def e)))
+         (syntax->list forms)))
   
   
   (define (type->contract ty fail)

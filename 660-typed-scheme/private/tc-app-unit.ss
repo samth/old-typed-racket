@@ -167,6 +167,13 @@
          (tc-error "Function has no cases")]
         [f-ty (tc-error "Type of argument to apply is not a function type: ~n~a" f-ty)]))))
 
+(define (stringify l [between " "])
+  (define (intersperse v l)
+    (cond [(null? l) null]
+          [(null? (cdr l)) l]
+          [else (cons (car l) (cons v (intersperse v (cdr l))))]))
+  (apply string-append (intersperse between (map (lambda (s) (format "~a" s)) l))))
+
 (define (tc/funapp f-stx args-stx ftype0 argtys)
   (match-let* ([(list (tc-result: argtypes arg-thn-effs arg-els-effs) ...) argtys])
     (let outer-loop ([ftype ftype0] 
@@ -221,7 +228,8 @@
                     (if (= 1 (length doms))
                         (tc-error "Polymorphic function could not be applied to arguments:~nExpected: ~a ~nActual: ~a" 
                                   (car msg-doms) argtypes)
-                        (tc-error "no polymorphic function domain matched - domains were: ~a arguments were ~a" msg-doms argtypes)))]
+                        (tc-error "no polymorphic function domain matched - possible domains were: ~n~a~narguments: were ~n~a"
+                                  (stringify (map stringify msg-doms) "\n") (stringify argtypes))))]
                  [(and (= (length (car doms*))
                           (length argtypes))
                        (infer/list (car doms*) argtypes vars))
@@ -249,7 +257,7 @@
                    (int-err "Inconsistent substitution - arguments not subtypes"))
                  (ret (subst-all substitution rng)))
                (tc-error "no polymorphic function domain matched - domain was: ~a rest type was: ~a arguments were ~a"
-                         dom rest argtypes)))]
+                         (stringify dom) rest (stringify argtypes))))]
         [(tc-result: (Poly: vars (Function: (list (arr: doms rngs rests thn-effs els-effs) ...))))
          (tc-error "polymorphic vararg case-lambda application not yet supported")]
         ;; Union of function types works if we can apply all of them
@@ -318,19 +326,25 @@
        (let loop ([t (tc-expr #'cl)])
          (match t
            [(tc-result: (? Mu? t)) (loop (ret (unfold t)))]
-           [(tc-result: (and c (Class: pos-tys (list (and tnflds (list tnames _)) ...) _))) 
+           [(tc-result: (and c (Class: pos-tys (list (and tnflds (list tnames _ _)) ...) _))) 
             (unless (= (length pos-tys)
                        (length (syntax->list #'(pos-args ...))))
               (tc-error "expected ~a positional arguments, but got ~a" (length pos-tys) (length (syntax->list #'(pos-args ...)))))
             (for-each tc-expr/check (syntax->list #'(pos-args ...)) pos-tys)
             (for-each (lambda (n) (unless (memq n tnames)
-                                    (tc-error "unknown named argument ~a for class" n)))
+                                    (tc-error "unknown named argument ~a for class~nlegal named arguments are ~a" n (stringify tnames))))
                       names)
             (for-each (match-lambda
-                        [(list tname tfty)
+                        [(list tname tfty opt?)
                          (let ([s (cond [(assq tname name-assoc) => cadr]
-                                        [else (tc-error "value not provided for named init arg ~a" tname)])])
-                           (tc-expr/check s tfty))])
+                                        [(not opt?)
+                                         (tc-error "value not provided for named init arg ~a" tname)]
+                                        [else #f])])
+                           (if s
+                               ;; this argument was present
+                               (tc-expr/check s tfty)
+                               ;; this argument wasn't provided, and was optional
+                               #f))])
                       tnflds)
             (ret (make-Instance c))]
            [(tc-result: t)

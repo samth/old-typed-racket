@@ -136,7 +136,7 @@
   (dt Syntax (t))
   
   ;; pos-flds  : (Listof Type)
-  ;; name-flds : (Listof (Tuple Symbol Type))
+  ;; name-flds : (Listof (Tuple Symbol Type Boolean))
   ;; methods   : (Listof (Tuple Symbol Function))
   (dt Class (pos-flds name-flds methods)
       [#:frees (combine-frees

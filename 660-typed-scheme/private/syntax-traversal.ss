@@ -1,5 +1,7 @@
 #lang scheme/base
 
+(require mzlib/trace)
+
 ;; from Eli
 
 (provide (all-defined-out))
@@ -50,4 +52,6 @@
   (and enclosing
        (ormap (lambda (enc) (hash-table-get syntax-locs (syntax-loc enc) #f))
               enclosing)))
+
+;(trace look-for-in-orig)
 

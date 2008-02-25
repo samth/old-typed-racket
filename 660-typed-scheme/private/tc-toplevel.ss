@@ -222,14 +222,12 @@
     (for-each tc-toplevel/pass2 forms)
     ;; compute the new provides
     (with-syntax
-        ([((new-provs ...) ...) (map (generate-prov stx-defs val-defs) provs)]
-         [(new-defs ...) (map generate-contract-def reqs)])
-      #`((begin new-defs ...)
-         (begin
+        ([((new-provs ...) ...) (map (generate-prov stx-defs val-defs) provs)])
+      #`(begin
            #,(env-init-code)
            #,(tname-env-init-code)
            #,(talias-env-init-code)
-           (begin new-provs ... ...))))))
+           (begin new-provs ... ...)))))
 
 ;; typecheck a top-level form
 ;; used only from #%top-interaction

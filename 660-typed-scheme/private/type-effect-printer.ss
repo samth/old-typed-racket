@@ -127,7 +127,7 @@
                                 (Vector: (F: x))
                                 (Box: (F: x))))))
        (fp "SyntaxObject")]
-      [(Mu-name: name body) (fp "(mu ~a ~a ~a)" (Type-seq c) name body)]
+      [(Mu-name: name body) (fp "(Rec ~a ~a)" name body)]
       ;; FIXME - this should not be used
       #;
       [(Scope: sc) (fp "(Scope ~a)" sc)]

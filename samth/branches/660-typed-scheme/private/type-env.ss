@@ -5,6 +5,7 @@
 
 (provide register-type
          finish-register-type
+         maybe-finish-register-type
          register-type/undefined
          lookup-type
          register-types
@@ -19,13 +20,11 @@
 ;; add a single type to the mapping
 ;; identifier type -> void
 (define (register-type id type)
-  #;(printf "registering ~a~n" (syntax-object->datum id))
   (module-identifier-mapping-put! the-mapping id type))
 
 ;; add a single type to the mapping
 ;; identifier type -> void
 (define (register-type/undefined id type)
-  #;(printf "registering ~a~n" (syntax-object->datum id))
   (module-identifier-mapping-put! the-mapping id (box type)))
 
 ;; add a bunch of types to the mapping
@@ -37,20 +36,24 @@
 ;; if none found, calls lookup-fail
 ;; identifier -> type 
 (define (lookup-type id [fail-handler (lambda () (lookup-fail (syntax-e id)))])
-  #;(printf "looking up ~a~n" (syntax-e id))
   (let ([v (module-identifier-mapping-get the-mapping id fail-handler)])
     (if (box? v) (unbox v) v)))
 
-(define (finish-register-type id)
+(define (maybe-finish-register-type id)
   (let ([v (module-identifier-mapping-get the-mapping id)])
     (if (box? v)
         (register-type id (unbox v))
-        (int-err "finishing type that was already finished: ~a ~a" (syntax-e id) v))))
+        #f)))
+
+(define (finish-register-type id)
+  (unless (maybe-finish-register-type id)
+    (int-err "finishing type that was already finished: ~a" (syntax-e id))))
 
 (define (check-all-registered-types)
   (module-identifier-mapping-for-each 
    the-mapping 
-   (lambda (id e) (when (box? e) (tc-error/stx id "Declaration for ~a provided, but with no definition" (syntax-e id))))))
+   (lambda (id e) 
+     (when (box? e) (tc-error/stx id "Declaration for ~a provided, but with no definition" (syntax-e id))))))
 
 ;; map over the-mapping, producing a list
 ;; (id type -> T) -> listof[T]  

@@ -35,16 +35,16 @@
        #t]
       [_ #f]))
   (kernel-syntax-case* stx #f 
-    (define-typed-struct-internal void)
-    [(#%plain-app void (quote-syntax (define-typed-struct-internal (ids ...) nm/par . rest)))
+    (define-typed-struct-internal values)
+    [(#%define-values () (begin (quote-syntax (define-typed-struct-internal (ids ...) nm/par . rest)) (#%plain-app values)))
      (and (andmap identifier? (syntax->list #'(ids ...)))
           (parent? #'nm/par))
      (let-values ([(nm _1 _2 _3 _4) (parse-parent #'nm/par)])
        (list nm))]
-    [(#%plain-app void (quote-syntax (define-typed-struct-internal nm/par . rest))) 
+    [(#%define-values () (begin (quote-syntax (define-typed-struct-internal nm/par . rest)) (#%plain-app values)))
      (let-values ([(nm _1 _2 _3 _4) (parse-parent #'nm/par)])
        (list nm))]
-    [(#%plain-app void (quote-syntax (define-typed-struct/exec-internal nm/par . rest)))
+    [(#%define-values () (begin (quote-syntax (define-typed-struct/exec-internal nm/par . rest)) (#%plain-app values)))
      (let-values ([(nm _1 _2 _3 _4) (parse-parent #'nm/par)])
        (list nm))]
     [_ (int-err "not define-typed-struct: ~a" (syntax->datum stx))]))

@@ -1,6 +1,7 @@
 #lang scheme/base
 
-(require "type-rep.ss" "parse-type.ss" "tc-utils.ss" "subtype.ss" "utils.ss" "union.ss" "resolve-type.ss")
+(require "type-rep.ss" "parse-type.ss" "tc-utils.ss" "subtype.ss" "utils.ss" "union.ss" "resolve-type.ss"
+         "type-env.ss")
 (require (lib "plt-match.ss"))
 (provide type-annotation
          get-type
@@ -31,6 +32,11 @@
   (cond       
     [(syntax-property stx type-label-symbol) => pt]
     [(syntax-property stx type-ascrip-symbol) => pt]
+    [(and (identifier? stx) (lookup-type stx (lambda () #f)))
+     =>
+     (lambda (t)
+       (maybe-finish-register-type stx)
+       t)]
     [else #f]))
 
 (define (log/ann stx ty)

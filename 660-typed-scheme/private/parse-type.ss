@@ -167,7 +167,7 @@
           (add-type-name-reference #'id)
           (make-Name #'id)]
          [else
-          (tc-error/stx #'id "unbound type ~a" (syntax-e #'id))])]     
+          (tc-error/stx #'id "unbound type ~a" (syntax-e #'id))])]
 
       [(All . rest) (eq? (syntax-e #'All) 'All) (tc-error "All: bad syntax")]
       [(Opaque . rest) (eq? (syntax-e #'Opaque) 'Opqaue) (tc-error "Opaque: bad syntax")]
@@ -200,18 +200,7 @@
               (tc-error "Wrong number of arguments to type ~a, expected ~a but got ~a" rator (length ns) (length args)))
             (instantiate-poly rator args)]
            [(Mu: _ _) (loop (unfold rator) args)]
-           [_ (tc-error "Type ~a cannot be applied, arguments were: ~a" rator args)]))
-       #;
-       (let ([ty (parse-type #'id)])
-         #;(printf "ty is ~a" ty)
-         (unless (Poly? ty)
-           (tc-error "not a polymorphic type: ~a" (syntax-e #'id)))
-         (unless (= (length (syntax->list #'(arg args ...))) (Poly-n ty))
-           (tc-error "wrong number of arguments to type constructor ~a: expected ~a, got ~a" 
-                     (syntax-e #'id)
-                     (Poly-n ty)
-                     (length (syntax->list #'(arg args ...)))))
-         (instantiate-poly ty (map parse-type (syntax->list #'(arg args ...)))))]
+           [_ (tc-error "Type ~a cannot be applied, arguments were: ~a" rator args)]))]
       [t
        (or (boolean? (syntax-e #'t)) (number? (syntax-e #'t))
            (string? (syntax-e #'t)))

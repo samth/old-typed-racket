@@ -35,7 +35,7 @@ This file defines two sorts of primitives. All of them are provided into any mod
 
 (require "require-contract.ss"
          "internal-forms.ss"
-         "planet-requires.ss"           
+         "planet-requires.ss"
          (lib "etc.ss")
          (except-in (lib "contract.ss") ->)
          (only-in (lib "contract.ss") [-> c->])
@@ -50,6 +50,13 @@ This file defines two sorts of primitives. All of them are provided into any mod
 
 (define-for-syntax (ignore stx) (syntax-property stx 'typechecker:ignore #t))
 
+(define-for-syntax (internal stx)
+  (quasisyntax/loc stx
+    (define-values ()
+      (begin
+        (quote-syntax #,stx)
+        (#%plain-app values)))))
+
 
 
 (define-syntax (require/typed stx)
@@ -63,7 +70,7 @@ This file defines two sorts of primitives. All of them are provided into any mod
                             #,(syntax-property (syntax-property #'(define cnt* #f)
                                                                 'typechecker:contract-def #'ty)
                                                'typechecker:ignore #t)
-                            (#%app void (quote-syntax (require/typed-internal nm ty)))
+                            #,(internal #'(require/typed-internal nm ty))
                             #,(syntax-property #'(require/contract nm cnt* lib)
                                                'typechecker:ignore #t)))]
     [(_ (rename internal-nm nm) ty lib)
@@ -74,7 +81,7 @@ This file defines two sorts of primitives. All of them are provided into any mod
                             #,(syntax-property (syntax-property #'(define cnt* #f)
                                                                 'typechecker:contract-def #'ty)
                                                'typechecker:ignore #t)
-                            (#%app void (quote-syntax (require/typed-internal internal-nm ty)))
+                            #,(internal #'(require/typed-internal internal-nm ty))
                             #,(syntax-property #'(require/contract nm cnt* lib)
                                                'typechecker:ignore #t)))]))      
 
@@ -88,7 +95,7 @@ This file defines two sorts of primitives. All of them are provided into any mod
          (begin 
            #,(syntax-property #'(define pred-cnt (any/c . c-> . boolean?))
                               'typechecker:ignore #t)
-           (#%app void (quote-syntax (require/typed-internal pred (Any -> Boolean : (Opaque pred)))))
+           #,(internal #'(require/typed-internal pred (Any -> Boolean : (Opaque pred))))
            (define-type-alias ty (Opaque pred))
            #,(syntax-property #'(require/contract pred pred-cnt lib)
                               'typechecker:ignore #t))))]))
@@ -149,7 +156,9 @@ This file defines two sorts of primitives. All of them are provided into any mod
     (syntax-case stx* ()
       [(_ id ty)
        (identifier? #'id)
-       (syntax/loc stx* (#%plain-app void (quote-syntax (:-internal id ty))))]
+       (syntax-property
+        (internal (syntax/loc stx (:-internal id ty)))
+        'disappeared-use #'id)]
       [(_ id ty)
        (raise-syntax-error '|type declaration| "can only annotate identifiers with types"
                            stx #'id)]
@@ -243,7 +252,7 @@ This file defines two sorts of primitives. All of them are provided into any mod
      (begin
        #`(begin
            #,(ignore #'(define-syntax tname (lambda (stx) (raise-syntax-error 'type-check "type name used out of context" stx))))
-           (#%app void (quote-syntax (define-type-alias-internal tname rest)))))]
+           #,(internal (syntax/loc stx (define-type-alias-internal tname rest)))))]
     [(_ (tname . args) rest)
      (andmap identifier? (syntax->list #'args))
      #'(define-type-alias tname (All args rest))]))
@@ -256,8 +265,7 @@ This file defines two sorts of primitives. All of them are provided into any mod
        [d-s (syntax-property (syntax/loc stx (define-struct/properties nm (fld ...)
                                                ([prop:procedure proc*])))
                              'typechecker:ignore-some #t)]
-       [dtsi (syntax/loc stx (#%app void 
-                                    (quote-syntax (define-typed-struct/exec-internal nm ([fld : ty] ...) proc-ty))))])
+       [dtsi (internal (syntax/loc stx (define-typed-struct/exec-internal nm ([fld : ty] ...) proc-ty)))])
       #'(begin d-s dtsi))]))
 
 (define-syntax (with-handlers: stx)
@@ -277,12 +285,12 @@ This file defines two sorts of primitives. All of them are provided into any mod
     [(_ nm ([fld : ty] ...) . opts)
      (with-syntax ([d-s (syntax-property (syntax/loc stx (define-struct nm (fld ...) . opts))
                                          'typechecker:ignore #t)]
-                   [dtsi (syntax/loc stx (#%app void (quote-syntax (define-typed-struct-internal nm ([fld : ty] ...)))))])
+                   [dtsi (internal (syntax/loc stx (define-typed-struct-internal nm ([fld : ty] ...))))])
        #'(begin d-s dtsi))]
     [(_ (vars ...) nm ([fld : ty] ...) . opts)
      (with-syntax ([d-s (syntax-property (syntax/loc stx (define-struct nm (fld ...) . opts))
                                          'typechecker:ignore #t)]
-                   [dtsi (syntax/loc stx (#%app void (quote-syntax (define-typed-struct-internal (vars ...) nm ([fld : ty] ...)))))])
+                   [dtsi (internal (syntax/loc stx (define-typed-struct-internal (vars ...) nm ([fld : ty] ...))))])
        #'(begin d-s dtsi))]))
 
 (define-syntax (require-typed-struct stx)

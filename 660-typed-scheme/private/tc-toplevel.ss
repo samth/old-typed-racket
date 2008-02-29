@@ -38,7 +38,7 @@
   (parameterize ([current-orig-stx form])
     (kernel-syntax-case* form #f (define-type-alias-internal define-typed-struct-internal define-type-internal 
                                    define-typed-struct/exec-internal :-internal assert-predicate-internal
-                                   require/typed-internal : void)
+                                   require/typed-internal : values)
       ;; forms that are handled in other ways
       [stx 
        (or (syntax-property form 'typechecker:ignore) 
@@ -46,32 +46,32 @@
        (list)]
       
       ;; type aliases have already been handled by an earlier pass
-      [(#%plain-app void (quote-syntax (define-type-alias-internal nm ty)))
+      [(define-values () (begin (quote-syntax (define-type-alias-internal nm ty)) (#%plain-app values)))
        (list)]
       
       ;; require/typed
-      [(#%plain-app void (quote-syntax (require/typed-internal nm ty)))
+      [(define-values () (begin (quote-syntax (require/typed-internal nm ty)) (#%plain-app values)))
        (register-type #'nm (parse-type #'ty))]
       
       ;; define-typed-struct
-      [(#%plain-app void (quote-syntax (define-typed-struct-internal nm ([fld : ty] ...))))
+      [(define-values () (begin (quote-syntax (define-typed-struct-internal nm ([fld : ty] ...))) (#%plain-app values)))
        (tc/struct #'nm (syntax->list #'(fld ...)) (syntax->list #'(ty ...)))]
-      [(#%plain-app void (quote-syntax (define-typed-struct-internal nm ([fld : ty] ...) #:maker m)))
+      [(define-values () (begin (quote-syntax (define-typed-struct-internal nm ([fld : ty] ...) #:maker m)) (#%plain-app values)))
        (tc/struct #'nm (syntax->list #'(fld ...)) (syntax->list #'(ty ...)) #:maker #'m)]
       ;; define-typed-struct w/ polymorphism
-      [(#%plain-app void (quote-syntax (define-typed-struct-internal (vars ...) nm ([fld : ty] ...))))
+      [(define-values () (begin (quote-syntax (define-typed-struct-internal (vars ...) nm ([fld : ty] ...))) (#%plain-app values)))
        (tc/poly-struct (syntax->list #'(vars ...)) #'nm (syntax->list #'(fld ...)) (syntax->list #'(ty ...)))]    
       
       ;; executable structs - this is a big hack
-      [(#%plain-app void (quote-syntax (define-typed-struct/exec-internal nm ([fld : ty] ...) proc-ty)))
+      [(define-values () (begin (quote-syntax (define-typed-struct/exec-internal nm ([fld : ty] ...) proc-ty)) (#%plain-app values)))
        (tc/struct #'nm (syntax->list #'(fld ...)) (syntax->list #'(ty ...)) #'proc-ty)]
       
       ;; predicate assertion - needed for define-type b/c or doesn't work
-      [(#%plain-app void (quote-syntax (assert-predicate-internal ty pred)))
+      [(define-values () (begin (quote-syntax (assert-predicate-internal ty pred)) (#%plain-app values)))
        (register-type #'pred (make-pred-ty (parse-type #'ty)))]
       
       ;; top-level type annotation
-      [(#%plain-app void (quote-syntax (:-internal id ty)))
+      [(define-values () (begin (quote-syntax (:-internal id ty)) (#%plain-app values)))
        (identifier? #'id)
        (register-type/undefined #'id (parse-type #'ty))]
       
@@ -121,7 +121,7 @@
 (define (tc-toplevel/pass2 form)
   (parameterize ([current-orig-stx form])
     (kernel-syntax-case* form #f (define-type-alias-internal define-typed-struct-internal define-type-internal 
-                                   require/typed-internal void)
+                                   require/typed-internal values)
       ;; these forms we have been instructed to ignore
       [stx 
        (syntax-property form 'typechecker:ignore)
@@ -139,9 +139,12 @@
       [(define-values-for-syntax . _) (void)]
       
       ;; these forms are handled in pass1
-      [(#%plain-app void (quote-syntax (require/typed-internal . rest))) (void)]
-      [(#%plain-app void (quote-syntax (define-type-alias-internal . rest))) (void)]
-      [(#%plain-app void (quote-syntax (define-typed-struct-internal . rest))) (void)]          
+      [(define-values () (begin (quote-syntax (require/typed-internal . rest)) (#%plain-app values)))
+       (void)]
+      [(define-values () (begin (quote-syntax (define-type-alias-internal . rest)) (#%plain-app values)))
+       (void)]
+      [(define-values () (begin (quote-syntax (define-typed-struct-internal . rest)) (#%plain-app values)))
+       (void)]          
       
       ;; definitions just need to typecheck their bodies
       [(define-values (var ...) expr)
@@ -168,8 +171,9 @@
 (define-syntax-rule (internal-syntax-pred nm)
   (lambda (form)
     (kernel-syntax-case* form #f 
-      (nm void)
-      [(#%plain-app void (quote-syntax (nm . rest))) #t]
+      (nm values)
+      [(define-values () (begin (quote-syntax (nm . rest)) (#%plain-app values)))
+       #t]
       [_ #f])))
 
 (define (parse-def x)
@@ -188,8 +192,8 @@
 
 (define (parse-type-alias form)
   (kernel-syntax-case* form #f 
-    (define-type-alias-internal void)
-    [(#%plain-app void (quote-syntax (define-type-alias-internal nm ty))) 
+    (define-type-alias-internal values)
+    [(define-values () (begin (quote-syntax (define-type-alias-internal nm ty)) (#%plain-app values)))
      (values #'nm #'ty)]
     [_ (int-err "not define-type-alias")]))
 
@@ -216,10 +220,10 @@
     ;; separate the definitions into structures we'll handle for provides    
     (define stx-defs (filter def-stx-binding? defs))
     (define val-defs (filter def-binding? defs))
-    ;; check that declarations correspond to definitions
-    (check-all-registered-types)
     ;; typecheck the expressions and the rhss of defintions
     (for-each tc-toplevel/pass2 forms)
+    ;; check that declarations correspond to definitions
+    (check-all-registered-types)
     ;; compute the new provides
     (with-syntax
         ([((new-provs ...) ...) (map (generate-prov stx-defs val-defs) provs)])

@@ -4,11 +4,16 @@
          "type-effect-convenience.ss"
          "lexical-env.ss"
          "type-annotation.ss"
-         syntax/free-vars
+         "type-alias-env.ss"
+         "type-env.ss"
+         "parse-type.ss"
          "utils.ss"
+         syntax/free-vars
          mzlib/trace
          syntax/kerncase
-         (for-template scheme/base "internal-forms.ss"))
+         (for-template 
+          scheme/base
+          "internal-forms.ss"))
 
 (require (only-in srfi/1 [member member1]))
 
@@ -66,6 +71,15 @@
          [exprs (syntax->list exprs)]           
          ;; the clauses for error reporting
          [clauses (syntax-case form () [(lv cl . b) (syntax->list #'cl)])])
+    (for-each (lambda (names body)
+                (kernel-syntax-case* body #f (values :-internal define-type-alias-internal)
+                  [(begin (quote-syntax (define-type-alias-internal nm ty)) (#%plain-app values))
+                   (register-resolved-type-alias #'nm (parse-type #'ty))]
+                  [(begin (quote-syntax (:-internal nm ty)) (#%plain-app values))
+                   (register-type/undefined #'nm (parse-type #'ty))]
+                  [_ (void)]))
+              names
+              exprs)
     (let loop ([names names] [exprs exprs] [flat-names flat-names] [clauses clauses])
       (cond 
         ;; after everything, check the body expressions
@@ -79,8 +93,8 @@
             (list (car names))
             (list (get-type/infer (car names) t))
             (loop (cdr names) (cdr exprs) (apply append (cdr names)) (cdr clauses))))]
-        [else                
-         (for-each (lambda (vs) (for-each (lambda (v) (printf/log "Letrec Var: ~a~n" (syntax-e v))) vs)) names)
+        [else
+         ;(for-each (lambda (vs) (for-each (lambda (v) (printf/log "Letrec Var: ~a~n" (syntax-e v))) vs)) names)
          (do-check tc-expr/t names (map (lambda (l) (map get-type l)) names) form exprs body clauses expected)]))))
 
 (define (tc/let-values/internal namess exprs body form expected)

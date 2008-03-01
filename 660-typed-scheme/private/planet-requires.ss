@@ -1,52 +1,49 @@
 #lang scheme/base
 
-(require
- (for-syntax scheme/base
-             scheme/require-transform
-             mzlib/etc)
- (planet "require.ss" ("ryanc" "require.plt" 1 2)))
+(require (for-syntax scheme/base scheme/require-transform))
 
-(define-module schemeunit 
-  (planet "test.ss" ("schematics" "schemeunit.plt" 2 3))
-  (planet "graphical-ui.ss" ("schematics" "schemeunit.plt" 2 3))
-  (planet "text-ui.ss" ("schematics" "schemeunit.plt" 2 3))
-  (planet "util.ss" ("schematics" "schemeunit.plt" 2 3))
-  (planet "random.ss" ("cce" "fasttest.plt" 1 1))
-  (planet "schemeunit.ss" ("cce" "fasttest.plt" 1 1)))
+(define-for-syntax (splice-requires specs)  
+  (define subs (map (compose cons expand-import) specs))
+  (values (apply append (map car subs)) (apply append (map cdr subs))))
 
+(define-syntax define-module
+  (lambda (stx)
+    (syntax-case stx ()
+      [(_ nm spec ...)
+       (syntax/loc stx
+         (define-syntax nm
+           (make-require-transformer
+            (lambda (stx)
+              (splice-requires (list (syntax-local-introduce (quote-syntax spec)) ...))))))])))
 
-(define-syntax require-begin
+(define-syntax planet/multiple
   (make-require-transformer
    (lambda (stx)
      (syntax-case stx ()
-       [(_ . rest)
-        (begin-with-definitions
-          ;; transform : Listof[Cons[A,B]] -> Values[Listof[A],Listof[B]]
-          (define (transform l)
-            (let loop ([a null] [b null] [l l])
-              (cond [(null? l) (values (reverse a) (reverse b))]
-                    [else (loop (cons (car (car l)) a) (cons (cdr (car l)) b) (cdr l))])))
-          ;; e is a Listof[Cons[Listof[Import],Listof[ImportSrc]]]
-          (define e (map (lambda (e) (define-values (a b) (expand-import e)) (cons a b))
-                         (syntax->list #'rest)))
-          ;; es : Listof[Listof[Import]]
-          ;; es* : Listof[Listof[ImportSrc]]
-          (define-values (es es*) (transform e))                   
-          (values (apply append es) (apply append es*)))]))))
+       [(_ plt files ...)
+        (let ([mk (lambda (spc)
+                    (syntax-case spc (prefix-in)
+                      [e
+                       (string? (syntax-e #'e))
+                       (datum->syntax spc `(planet ,#'e ,#'plt) spc)]
+                      [(prefix-in p e)
+                       (datum->syntax spc `(prefix-in ,#'p (planet ,#'e ,#'plt)) spc)]))])
+          (splice-requires (map mk (syntax->list #'(files ...)))))]))))
 
-(require (require-begin (prefix-in set: (planet "set.ss" ("soegaard" "galore.plt" 3 3)))))
+
+(provide galore schemeunit)
+;; why is this neccessary?
+(provide planet/multiple)
 
 (define-module galore
-  (prefix set: (planet "set.ss" ("soegaard" "galore.plt" 3 3)))
-  (prefix table: (planet "table.ss" ("soegaard" "galore.plt" 3 3))))
+  (prefix-in table: "tables.ss"))
 
-(define-module libs
-  (prefix set: (planet "set.ss" ("soegaard" "galore.plt" 3 3)))
-  (prefix table: (planet "table.ss" ("soegaard" "galore.plt" 3 3)))
-  (planet "equiv.ss" ("cce" "equiv.plt" 1 0))
-  (lib "match.ss")
-  (all-except (lib "list.ss") remove)
-  (lib "etc.ss")
-  (lib "trace.ss")
-  (lib "struct.ss"))
-
+(define-module schemeunit 
+  (planet/multiple ("schematics" "schemeunit.plt" 2 3)
+                   "test.ss"
+                   "graphical-ui.ss"
+                   "text-ui.ss"
+                   "util.ss")
+  (planet/multiple ("cce" "fasttest.plt" 1 2)
+                   "random.ss"
+                   "schemeunit.ss"))

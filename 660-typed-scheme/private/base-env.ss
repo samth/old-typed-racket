@@ -412,7 +412,8 @@
      ;; make-promise 
      
      [(cadr (syntax->list (expand #'(delay 3)))) 
-      (-poly (a) (-> (-> a) (-Promise a)))]
+      (-poly (a) (-> (-> a) (-Promise a)))
+      scheme/promise]
      ;; qq-append
      
      [(cadr (syntax->list (expand #'`(,@'() 1)))) 

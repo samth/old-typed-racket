@@ -200,14 +200,10 @@
                        #`(list  #'nm ty)]
                       [(e ty extra-mods ...)
                        #'(list (let ([new-ns
-                                      (let* ([x (current-namespace)]
-                                             [ns (make-empty-namespace)])
-                                        (namespace-attach-module x
-                                                                 'scheme/base 
+                                      (let* ([ns (make-empty-namespace)])
+                                        (namespace-attach-module (current-namespace)
+                                                                 'scheme/base
                                                                  ns)
-                                        (namespace-attach-module x
-                                                                 'scheme/promise 
-                                                                 ns)                                         
                                         ns)])
                                  (parameterize ([current-namespace new-ns])
                                    (namespace-require 'extra-mods) ...

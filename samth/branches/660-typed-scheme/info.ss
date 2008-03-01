@@ -13,7 +13,10 @@
   (define required-core-version "399")
   (define version "0.91")
   
-  (define release-notes '("This release fixes an error that occurred when errortrace was enabled."
+  (define scribblings '(("scribblings/manual.scrbl")))
+  
+  (define release-notes '("This release fixes many bugs, including documentation bugs."
+			  "This release fixes an error that occurred when errortrace was enabled."
                           "This release fixes several regressions in the previous release."))
   
   (define blurb `("This language allows the definition and execution of Typed Scheme programs."))

@@ -7,7 +7,7 @@
          (lib "trace.ss")
          (lib "plt-match.ss")
          (lib "list.ss"))
-(require-galore)
+(require (galore))
 
 (provide infer infer/list infer/list/vararg combine table:un exn:infer?)
 

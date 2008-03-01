@@ -13,7 +13,6 @@
           syntax/struct
           syntax/stx
           "utils.ss"))
-(require-galore)
 
 (provide == dt de print-type* print-effect* Type Type? Effect Effect? defintern hash-id Type-seq Effect-seq)
 

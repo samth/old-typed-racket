@@ -228,7 +228,7 @@
                     (if (= 1 (length doms))
                         (tc-error "Polymorphic function could not be applied to arguments:~nExpected: ~a ~nActual: ~a" 
                                   (car msg-doms) argtypes)
-                        (tc-error "no polymorphic function domain matched - possible domains were: ~n~a~narguments: were ~n~a"
+                        (tc-error "no polymorphic function domain matched - possible domains were: ~n~a~narguments were: ~n~a"
                                   (stringify (map stringify msg-doms) "\n") (stringify argtypes))))]
                  [(and (= (length (car doms*))
                           (length argtypes))

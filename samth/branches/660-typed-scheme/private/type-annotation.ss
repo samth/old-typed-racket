@@ -55,7 +55,7 @@
       [(type-annotation stx) => (lambda (x) 
                                   (log/ann stx x)
                                   x)]
-      [(not (syntax-original? stx)) 
+      [(not (syntax-original? stx))
        (tc-error "untyped var: ~a" (syntax-e stx))]
       [else
        (tc-error "no type information on variable ~a" (syntax-e stx))])))

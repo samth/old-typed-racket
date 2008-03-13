@@ -38,7 +38,7 @@
   (parameterize ([current-orig-stx form])
     (kernel-syntax-case* form #f (define-type-alias-internal define-typed-struct-internal define-type-internal 
                                    define-typed-struct/exec-internal :-internal assert-predicate-internal
-                                   require/typed-internal : values)
+                                   require/typed-internal values)
       ;; forms that are handled in other ways
       [stx 
        (or (syntax-property form 'typechecker:ignore) 
@@ -74,6 +74,7 @@
       [(define-values () (begin (quote-syntax (:-internal id ty)) (#%plain-app values)))
        (identifier? #'id)
        (register-type/undefined #'id (parse-type #'ty))]
+            
       
       ;; values definitions
       [(define-values (var ...) expr)

@@ -159,20 +159,20 @@
 ;; typecheck a non-polymophic struct and register the approriate types
 ;; tc/struct : (U identifier (list identifier identifier)) Listof[identifier] Listof[syntax] -> void
 (define (tc/struct nm/par flds tys [proc-ty #f] #:maker [maker #f])
-    ;; get the parent info and create some types and type variables
-    (define-values (nm parent-name parent name name-tvar) (parse-parent nm/par))
-    ;; parse the field types, and determine if the type is recursive
-    (define types (map parse-type tys))
-    (define proc-ty-parsed  
-      (if proc-ty
-          (parse-type proc-ty)
-          #f))
-    ;; create the actual structure type, and the types of the fields
-    ;; that the outside world will see
-    (mk/register-sty nm flds parent-name (get-parent-flds parent) types
-                     ;; procedure
-                     #:proc-ty proc-ty-parsed
-                     #:maker maker))
+  ;; get the parent info and create some types and type variables
+  (define-values (nm parent-name parent name name-tvar) (parse-parent nm/par))
+  ;; parse the field types, and determine if the type is recursive
+  (define types (map parse-type tys))
+  (define proc-ty-parsed  
+    (if proc-ty
+        (parse-type proc-ty)
+        #f))
+  ;; create the actual structure type, and the types of the fields
+  ;; that the outside world will see
+  (mk/register-sty nm flds parent-name (get-parent-flds parent) types
+                   ;; procedure
+                   #:proc-ty proc-ty-parsed
+                   #:maker maker))
 
 ;; register a struct type
 ;; convenience function for built-in structs

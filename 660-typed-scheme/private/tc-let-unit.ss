@@ -8,8 +8,10 @@
          "type-env.ss"
          "parse-type.ss"
          "utils.ss"
+         "type-utils.ss"
          syntax/free-vars
          mzlib/trace
+         scheme/match
          syntax/kerncase
          (for-template 
           scheme/base
@@ -30,7 +32,7 @@
    namess
    ;; the types
    types
-   (for-each (lambda (stx e t) (check-type stx (expr->type e) t))
+   (for-each expr->type
              clauses
              exprs 
              (map list->values-ty types))
@@ -68,7 +70,7 @@
 (define (tc/letrec-values/internal namess exprs body form expected)
   (let* ([names (map syntax->list (syntax->list namess))]
          [flat-names (apply append names)]
-         [exprs (syntax->list exprs)]           
+         [exprs (syntax->list exprs)]
          ;; the clauses for error reporting
          [clauses (syntax-case form () [(lv cl . b) (syntax->list #'cl)])])
     (for-each (lambda (names body)
@@ -95,7 +97,10 @@
             (loop (cdr names) (cdr exprs) (apply append (cdr names)) (cdr clauses))))]
         [else
          ;(for-each (lambda (vs) (for-each (lambda (v) (printf/log "Letrec Var: ~a~n" (syntax-e v))) vs)) names)
-         (do-check tc-expr/t names (map (lambda (l) (map get-type l)) names) form exprs body clauses expected)]))))
+         (do-check (lambda (stx e t)
+                     (match (tc-expr/check e t)
+                       [(tc-result: t) t]))
+                   names (map (lambda (l) (map get-type l)) names) form exprs body clauses expected)]))))
 
 (define (tc/let-values/internal namess exprs body form expected)
   (let* (;; a list of each name clause
@@ -108,7 +113,7 @@
          [types (map get-type/infer names inferred-types)]
          ;; the clauses for error reporting
          [clauses (syntax-case form () [(lv cl . b) (syntax->list #'cl)])])
-    (do-check (lambda (x) x) names types form inferred-types body clauses expected)))
+    (do-check check-type names types form inferred-types body clauses expected)))
 
 (define (tc/let-values/check namess exprs body form expected)
   (tc/let-values/internal namess exprs body form expected))

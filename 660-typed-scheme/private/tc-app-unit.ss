@@ -236,10 +236,12 @@
                   => (lambda (substitution)
                        (let* ([s (lambda (t) (subst-all substitution t))]
                               [new-doms* (map s (car doms*))])
-                         (unless (andmap subtype argtypes new-doms*)
-                           (int-err "Inconsistent substitution - arguments not subtypes")))
-                       #;(printf "subst is:~a~nret is: ~a~nvars is: ~a~n" substitution (car rngs*) vars)
-                       (ret (subst-all substitution (car rngs*))))]
+                         (if (andmap subtype argtypes new-doms*)
+                             (ret (subst-all substitution (car rngs*)))
+                             (begin 
+                               #;(int-err "Inconsistent substitution - arguments ~a not subtypes ~a ~n~a~n" argtypes new-doms*
+                                       (car doms*))
+                               (loop (cdr doms*) (cdr rngs*))))))]
                  [else (loop (cdr doms*) (cdr rngs*))]))]
         ;; polymorphic varargs
         [(tc-result: (Poly: vars (Function: (list (arr: dom rng rest thn-eff els-eff)))))

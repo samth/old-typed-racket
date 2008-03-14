@@ -105,8 +105,12 @@
      (number? (make-pred-ty N))
      (integer? (make-pred-ty -Integer))
      (boolean? (make-pred-ty B))
-     (add1 (-> N N))
-     (sub1 (-> N N))
+     (add1 (cl->*
+            (-> -Integer -Integer)
+            (-> N N)))
+     (sub1 (cl->*
+            (-> -Integer -Integer)
+            (-> N N)))
      (eq? (-> Univ Univ B))
      (eqv? (-> Univ Univ B))
      (equal? (-> Univ Univ B))

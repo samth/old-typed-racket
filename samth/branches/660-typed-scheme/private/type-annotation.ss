@@ -23,7 +23,7 @@
 
 ;; get the type annotation of this syntax
 ;; syntax -> Maybe[Type]
-(define (type-annotation stx)
+(define (type-annotation stx [lookup? #t])
   (define (pt prop)
     (print-size prop)
     (if (syntax? prop)
@@ -32,7 +32,7 @@
   (cond       
     [(syntax-property stx type-label-symbol) => pt]
     [(syntax-property stx type-ascrip-symbol) => pt]
-    [(and (identifier? stx) (lookup-type stx (lambda () #f)))
+    [(and lookup? (identifier? stx) (lookup-type stx (lambda () #f)))
      =>
      (lambda (t)
        (maybe-finish-register-type stx)

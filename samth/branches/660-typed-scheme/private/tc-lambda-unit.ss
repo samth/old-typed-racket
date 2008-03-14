@@ -123,7 +123,8 @@
         (match expected          
           [(Mu: _ _) (loop (unfold expected))]
           [(Function: (list (arr: args ret rest _ _))) 
-           (tc/lambda-clause/check (car (syntax->list formals)) (car (syntax->list bodies)) args ret rest)]
+           (tc/lambda-clause/check (car (syntax->list formals)) (car (syntax->list bodies)) args ret rest)
+           expected]
           [t (let ([t (tc/mono-lambda formals bodies #f)])
                (check-below t expected))]))
       (let loop ([formals (syntax->list formals)] 

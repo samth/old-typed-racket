@@ -67,6 +67,20 @@
 (define (tc/letrec-values namess exprs body form)
   (tc/letrec-values/internal namess exprs body form #f))
 
+(define (tc-expr/maybe-expected/t e name)
+  (define expecteds
+    (map (lambda (stx) (lookup-type stx (lambda () #f))) name))
+  (define mk (if (and (pair? expecteds) (null? (cdr expecteds)))
+                 car
+                 -values))
+  (define tcr
+    (if
+     (andmap values expecteds)
+     (tc-expr/check e (mk expecteds))
+     (tc-expr e)))
+  (match tcr
+    [(tc-result: t) t]))
+
 (define (tc/letrec-values/internal namess exprs body form expected)
   (let* ([names (map syntax->list (syntax->list namess))]
          [flat-names (apply append names)]
@@ -90,7 +104,7 @@
         ;; if none of the names bound in the letrec are free vars of this rhs
         [(not (ormap (lambda (n) (member1 n flat-names bound-identifier=?)) (free-vars (car exprs))))
          ;; then check this expression separately
-         (let ([t (tc-expr/t (car exprs))])               
+         (let ([t (tc-expr/maybe-expected/t (car exprs) (car names))])
            (with-lexical-env/extend
             (list (car names))
             (list (get-type/infer (car names) t))

@@ -40,20 +40,22 @@
 ;; given in `expanded'.
 (define (look-for-in-orig orig expanded lookfor)
   (define src (syntax-source orig))
-  ;; we just might get a lookfor that is already in the original
-  (if (eq? src (syntax-source lookfor))
-    lookfor
-    (let ([enclosing (enclosing-syntaxes-with-source expanded lookfor src)]
-          [syntax-locs (make-hash-table 'equal)])
-      ;; find all syntax locations in original code
-      (let loop ([stx orig])
-        (when (syntax? stx) (hash-table-put! syntax-locs (syntax-loc stx) stx))
-        (let ([stx (if (syntax? stx) (syntax-e stx) stx)])
-          (when (pair? stx) (loop (car stx)) (loop (cdr stx)))))
-      ;; look for some enclosing expression
-      (and enclosing
-           (ormap (lambda (enc) (hash-table-get syntax-locs (syntax-loc enc) #f))
-                  enclosing)))))
+  (let ([enclosing (enclosing-syntaxes-with-source expanded lookfor src)]
+        [syntax-locs (make-hash-table 'equal)])
+    ;; find all syntax locations in original code
+    (let loop ([stx orig])
+      (when (syntax? stx) (hash-table-put! syntax-locs (syntax-loc stx) stx))
+      (let ([stx (if (syntax? stx) (syntax-e stx) stx)])
+        (when (pair? stx) (loop (car stx)) (loop (cdr stx)))))
+    (or
+     ;; we just might get a lookfor that is already in the original
+     (and (eq? src (syntax-source lookfor))
+          (hash-table-get syntax-locs (syntax-loc lookfor) #f))
+          
+     ;; look for some enclosing expression
+     (and enclosing
+          (ormap (lambda (enc) (hash-table-get syntax-locs (syntax-loc enc) #f))
+                 enclosing)))))
 
 ;(trace look-for-in-orig)
 

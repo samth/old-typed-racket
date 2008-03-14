@@ -70,10 +70,10 @@
      (map (lambda (stx ty)
             (cond [(type-annotation stx) => (lambda (ann) (check-type stx ty ann) (log/extra stx ty ann) ann)]
                   [else (log/noann stx ty) ty]))
-          stx ty)]      
+          stx ty)]   
     [(list (list stx) ty)
      (cond [(type-annotation stx) => (lambda (ann)
-                                       (check-type stx ty ann) 
+                                       (check-type stx ty ann)
                                        (log/extra stx ty ann)
                                        (list ann))]
            [else (log/noann stx ty) (list ty)])]

@@ -279,9 +279,7 @@
     (unless (syntax? form) 
       (int-err "bad form input to tc-expr: ~a" form))
     ;; typecheck form
-    (cond [(type-annotation form #f) => (lambda (ann)
-                                            (printf "annotated: ~a~n" ann)
-                                            (tc-expr/check form ann))]
+    (cond [(type-annotation form #f) => (lambda (ann) (tc-expr/check form ann))]
           [else (internal-tc-expr form)])))
 
 (define (tc/send rcvr method args [expected #f])

@@ -2,7 +2,8 @@
 
 (require "type-rep.ss" "parse-type.ss" "tc-utils.ss" "subtype.ss" "utils.ss" "union.ss" "resolve-type.ss"
          "type-env.ss")
-(require (lib "plt-match.ss"))
+(require (lib "plt-match.ss")
+         mzlib/trace)
 (provide type-annotation
          get-type
          get-type/infer
@@ -88,5 +89,5 @@
   (let ([stx* (current-orig-stx)])
     (parameterize ([current-orig-stx stx])
       (unless (subtype e-type ty)
-        ;(printf "orig-stx: ~a" (syntax->datum stx*))
+        (printf "orig-stx: ~a" (syntax->datum stx*))
         (tc-error "Body had type:~n~a~nVariable had type:~n~a~n" e-type ty)))))

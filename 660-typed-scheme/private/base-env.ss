@@ -55,6 +55,8 @@
         [make-lst/elements -pair])
     (make-env
      
+     [raise (Univ . -> . (Un))]
+     
      ;; 660 test code
      [test-e (-> Univ Univ Univ Univ)]
      [test-1 (-> Univ Univ Univ)]

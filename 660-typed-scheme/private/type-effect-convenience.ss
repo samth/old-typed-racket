@@ -213,12 +213,14 @@
   
   ;; if t is of the form (Pair t* (Pair t* ... (Listof t*)))
   ;; return t*
+  ;; if t is '() return (Listof Any)
   ;; otherwise, return t
   ;; generalize : Type -> Type
   (define (generalize t)
     (let/ec exit
       (let loop ([t* t])
         (match t*
+          [(Value: '()) (-lst Univ)]
           [(Mu: var (Union: (list (Value: '()) (Pair: _ (F: var))))) t*]
           [(Pair: t1 t2)
            (let ([t-new (loop t2)])

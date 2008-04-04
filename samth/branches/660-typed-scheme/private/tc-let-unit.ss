@@ -116,13 +116,24 @@
                        [(tc-result: t) t]))
                    names (map (lambda (l) (map get-type l)) names) form exprs body clauses expected)]))))
 
+;; this is so match can provide us with a syntax property to
+;; say that this binding is only called in tail position
+(define ((tc-expr-t/maybe-expected expected) e)
+  (kernel-syntax-case e #f
+    [(#%plain-lambda () _)
+     (syntax-property e 'typechecker:called-in-tail-position)
+     (begin
+       (tc-expr/check e (-> expected))
+       (-> expected))]
+    [_ (tc-expr/t e)]))
+
 (define (tc/let-values/internal namess exprs body form expected)
   (let* (;; a list of each name clause
          [names (map syntax->list (syntax->list namess))]
          ;; all the trailing expressions - the ones actually bound to the names
          [exprs (syntax->list exprs)]
          ;; the types of the exprs
-         [inferred-types (map tc-expr/t exprs)]
+         [inferred-types (map (tc-expr-t/maybe-expected expected) exprs)]
          ;; the annotated types of the name (possibly using the inferred types)
          [types (map get-type/infer names inferred-types)]
          ;; the clauses for error reporting

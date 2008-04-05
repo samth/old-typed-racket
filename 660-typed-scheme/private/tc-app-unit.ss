@@ -460,7 +460,7 @@
           ;(printf "special case 1~n")
           (not (andmap type-annotation (syntax->list #'(args ...))))
           (free-identifier=? #'lp #'lp*))
-     (let ([ts (map tc-expr/t (syntax->list #'actuals))])
+     (let ([ts (map (compose generalize tc-expr/t) (syntax->list #'actuals))])
        ;(printf "special case~n")
        (tc/rec-lambda/check form #'(args ...) #'body #'lp ts expected)
        (ret expected))]

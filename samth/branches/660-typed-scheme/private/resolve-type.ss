@@ -60,7 +60,7 @@
         (loop (resolve-type t))
         t)))
 
-(define table (make-hash))
+(define table (make-hasheq))
 
 (define (resolve-type t)
   (hash-ref table t

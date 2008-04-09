@@ -20,7 +20,7 @@
 
 ;; hash table for defining folds over types
 (define-values-for-syntax (type-name-ht effect-name-ht)
-  (values (make-hash) (make-hash)))
+  (values (make-hasheq) (make-hasheq)))
 
 (provide (for-syntax type-name-ht effect-name-ht))
 

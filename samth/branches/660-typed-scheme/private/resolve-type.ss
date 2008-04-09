@@ -60,19 +60,19 @@
         (loop (resolve-type t))
         t)))
 
-(define table (make-hash-table))
+(define table (make-hash))
 
 (define (resolve-type t)
-  (hash-table-get table t
-                  (lambda () (let ([v (resolve-type* t)])
-                               (hash-table-put! table t v)
-                               v))))
+  (hash-ref table t
+            (lambda () (let ([v (resolve-type* t)])
+                         (hash-set! table t v)
+                         v))))
 
 (define (resolve-effect t)
-  (hash-table-get table t
-                  (lambda () (let ([v (resolve-effect* t)])
-                               (hash-table-put! table t v)
-                               v))))
+  (hash-ref table t
+            (lambda () (let ([v (resolve-effect* t)])
+                         (hash-table-set! table t v)
+                         v))))
 
 ;(trace resolve-type)
 

@@ -10,4 +10,4 @@
    'typed-scheme in (lambda (in) (r:read-syntax src in))
    modpath src line col pos))
 
-(provide (rename-out [*read read] [*read-syntax read-syntax])))
+(provide (rename-out [*read read] [*read-syntax read-syntax]))

@@ -19,23 +19,23 @@
 (provide Covariant Contravariant Invariant Constant)
 
 ;; hashtables for keeping track of free variables and indexes
-(define index-table (make-weak-hash))
+(define index-table (make-weak-hasheq))
 ;; maps Type to List[Cons[Number,Variance]]
-(define var-table (make-weak-hash))
+(define var-table (make-weak-hasheq))
 ;; maps Type to List[Cons[Symbol,Variance]]
 
 (define (free-idxs* t) (hash-ref index-table t (lambda _ (error "type not in index-table" (syntax-e t)))))
 (define (free-vars* t) (hash-ref var-table t (lambda _ (error "type not in var-table" (syntax-e t)))))
 
 
-(define empty-hash (make-immutable-hash null))
+(define empty-hash (make-immutable-hasheq null))
 
 (provide free-vars* free-idxs* empty-hash make-invariant)
 
 ;; frees = HT[Idx,Variance] where Idx is either Symbol or Number
 ;; (listof frees) -> frees
 (define (combine-frees freess)    
-  (define ht (make-hash))
+  (define ht (make-hasheq))
   (define (combine-var v w)
     (cond
       [(eq? v w) v]

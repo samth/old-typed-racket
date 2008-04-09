@@ -8,7 +8,7 @@
            (lib "trace.ss")
            (for-syntax scheme/base))
   
-  (define name-table (make-weak-hash))
+  (define name-table (make-weak-hasheq))
   
   ;; Name = Symbol
   
@@ -19,11 +19,11 @@
   
   ;; i is an nat
   (dt B (i)
-      [#:frees empty-hash (make-immutable-hash (list (cons i Covariant)))]
+      [#:frees empty-hash (make-immutable-hasheq (list (cons i Covariant)))]
       [#:fold-rhs #:base])
   
   ;; n is a Name
-  (dt F (n) [#:frees (make-immutable-hash (list (cons n Covariant))) empty-hash] [#:fold-rhs #:base])
+  (dt F (n) [#:frees (make-immutable-hasheq (list (cons n Covariant))) empty-hash] [#:fold-rhs #:base])
   
   ;; id is an Identifier
   (dt Name (id) [#:intern (hash-id id)] [#:frees #f] [#:fold-rhs #:base])

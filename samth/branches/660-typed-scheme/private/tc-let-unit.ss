@@ -121,7 +121,7 @@
 (define ((tc-expr-t/maybe-expected expected) e)
   (kernel-syntax-case e #f
     [(#%plain-lambda () _)
-     (syntax-property e 'typechecker:called-in-tail-position)
+     (and expected (syntax-property e 'typechecker:called-in-tail-position))
      (begin
        (tc-expr/check e (-> expected))
        (-> expected))]
